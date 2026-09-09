@@ -584,13 +584,14 @@
         return;
       }
 
-      // 5. Track directional accumulated scroll
+      // 5. Track directional accumulated scroll with balanced thresholds
       if (delta > 0) {
         // User is scrolling DOWN
         accumulatedDown += delta;
         accumulatedUp = 0;
 
-        if (accumulatedDown >= 25 && currentScrollTop > 50) {
+        // Require deliberate downward scroll distance (>= 45px) matching the scroll-up feel
+        if (accumulatedDown >= 45 && currentScrollTop > 50) {
           hideToolbar();
         }
       } else if (delta < 0) {
@@ -598,7 +599,7 @@
         accumulatedUp += Math.abs(delta);
         accumulatedDown = 0;
 
-        // Require deliberate upward scroll distance (>= 45px) so it does not pop in suddenly
+        // Require deliberate upward scroll distance (>= 45px) matching the scroll-down feel
         if (accumulatedUp >= 45) {
           showToolbar();
         }
