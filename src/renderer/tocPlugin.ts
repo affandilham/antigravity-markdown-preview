@@ -4,6 +4,7 @@ export interface TocItem {
   id: string;
   level: number;
   text: string;
+  line: number;
 }
 
 export function slugify(text: string): string {
@@ -23,7 +24,8 @@ export function extractHeadings(markdown: string): TocItem[] {
 
   let inCodeBlock = false;
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     if (line.trim().startsWith('```')) {
       inCodeBlock = !inCodeBlock;
       continue;
@@ -43,8 +45,40 @@ export function extractHeadings(markdown: string): TocItem[] {
       headings.push({
         id: finalId,
         level,
-        text
+        text,
+        line: i
       });
+      continue;
+    }
+
+    // Check Setext headings: Line\n=== or Line\n---
+    if (i + 1 < lines.length && line.trim().length > 0) {
+      const nextLine = lines[i + 1].trim();
+      if (/^={2,}$/.test(nextLine)) {
+        const text = line.trim();
+        let baseSlug = slugify(text) || `heading-${headings.length + 1}`;
+        let count = slugCounts.get(baseSlug) || 0;
+        slugCounts.set(baseSlug, count + 1);
+        const finalId = count === 0 ? baseSlug : `${baseSlug}-${count}`;
+        headings.push({
+          id: finalId,
+          level: 1,
+          text,
+          line: i
+        });
+      } else if (/^-{2,}$/.test(nextLine)) {
+        const text = line.trim();
+        let baseSlug = slugify(text) || `heading-${headings.length + 1}`;
+        let count = slugCounts.get(baseSlug) || 0;
+        slugCounts.set(baseSlug, count + 1);
+        const finalId = count === 0 ? baseSlug : `${baseSlug}-${count}`;
+        headings.push({
+          id: finalId,
+          level: 2,
+          text,
+          line: i
+        });
+      }
     }
   }
 
@@ -59,7 +93,8 @@ export function generateTocHtml(headings: TocItem[]): string {
   let html = '<nav class="antigravity-toc-inline"><div class="toc-inline-title">Table of Contents</div><ul class="toc-list">';
   for (const h of headings) {
     const indentClass = `toc-level-${h.level}`;
-    html += `<li class="${indentClass}"><a href="#${h.id}" class="toc-link">${escapeHtml(h.text)}</a></li>`;
+    const lineAttr = typeof h.line === 'number' ? ` data-line="${h.line}"` : '';
+    html += `<li class="${indentClass}"><a href="#${h.id}" class="toc-link"${lineAttr}>${escapeHtml(h.text)}</a></li>`;
   }
   html += '</ul></nav>';
   return html;
@@ -97,6 +132,9 @@ export function tocPlugin(md: MarkdownIt): void {
 
       token.attrSet('id', finalId);
       token.attrJoin('class', 'antigravity-heading');
+      if (token.map) {
+        token.attrSet('data-line', String(token.map[0]));
+      }
     }
 
     return defaultHeadingOpen(tokens, idx, options, env, self);
@@ -127,7 +165,8 @@ export function tocPlugin(md: MarkdownIt): void {
               let c = localCounts.get(base) || 0;
               localCounts.set(base, c + 1);
               const id = c === 0 ? base : `${base}-${c}`;
-              headings.push({ id, level: hLevel, text: hText });
+              const map = tokens[j].map; const line = map ? map[0] : 0;
+              headings.push({ id, level: hLevel, text: hText, line });
             }
           }
         }

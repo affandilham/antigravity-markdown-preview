@@ -170,13 +170,14 @@ export class MarkdownPreviewPanel {
   }
 
   public scrollEditorToLine(line: number): void {
-    const editor = vscode.window.visibleTextEditors.find(e => e.document === this._document);
-    if (!editor) return;
+    const editor = vscode.window.visibleTextEditors.find(e => e.document === this._document) || vscode.window.activeTextEditor;
+    if (!editor || editor.document !== this._document) return;
 
     const targetLine = Math.min(Math.max(0, line), editor.document.lineCount - 1);
     const range = new vscode.Range(targetLine, 0, targetLine, 0);
 
     MarkdownPreviewPanel.isSyncingFromWebview = true;
+    editor.selection = new vscode.Selection(range.start, range.start);
     editor.revealRange(range, vscode.TextEditorRevealType.AtTop);
 
     if (this._syncLockTimeout) {
@@ -184,7 +185,7 @@ export class MarkdownPreviewPanel {
     }
     this._syncLockTimeout = setTimeout(() => {
       MarkdownPreviewPanel.isSyncingFromWebview = false;
-    }, 60);
+    }, 400);
   }
 
   public async exportStandaloneHtml(): Promise<void> {
@@ -271,7 +272,8 @@ export class MarkdownPreviewPanel {
     if (headings && headings.length > 0) {
       initialTocHtml = '<ul>';
       for (const h of headings) {
-        initialTocHtml += `<li class="toc-item-${Math.min(4, h.level)}"><a href="#${h.id}" data-target-id="${h.id}">${escapeHtml(h.text)}</a></li>`;
+        const lineAttr = typeof h.line === 'number' ? ` data-line="${h.line}"` : '';
+        initialTocHtml += `<li class="toc-item-${Math.min(4, h.level)}"><a href="#${h.id}" data-target-id="${h.id}"${lineAttr}>${escapeHtml(h.text)}</a></li>`;
       }
       initialTocHtml += '</ul>';
     }

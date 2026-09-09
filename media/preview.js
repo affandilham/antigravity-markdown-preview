@@ -26,14 +26,14 @@
   let lastEditorLine = 0;
   let lastEditorPercentage = 0;
 
-  function markProgrammaticScroll() {
+  function markProgrammaticScroll(duration = 200) {
     isProgrammaticScroll = true;
     if (programmaticScrollTimer) {
       clearTimeout(programmaticScrollTimer);
     }
     programmaticScrollTimer = setTimeout(() => {
       isProgrammaticScroll = false;
-    }, 150);
+    }, duration);
   }
 
   function getCurrentPreviewTopLine() {
@@ -212,6 +212,48 @@
     }
   }
 
+  // Navigate to heading in both Preview and Markdown Editor
+  function navigateToHeading(h) {
+    const target = h.id ? document.getElementById(h.id) : null;
+
+    // Resolve line number
+    let line = typeof h.line === 'number' ? h.line : undefined;
+    if (line === undefined && target) {
+      const lineAttr = target.getAttribute('data-line');
+      if (lineAttr !== null) {
+        line = parseInt(lineAttr, 10);
+      }
+    }
+
+    // 1. Smoothly scroll preview to heading
+    if (target && previewContentArea) {
+      markProgrammaticScroll(600);
+      const targetTop = getElementScrollTop(target);
+      previewContentArea.scrollTo({
+        top: Math.max(0, targetTop - 20),
+        behavior: 'smooth'
+      });
+    }
+
+    // 2. Highlight clicked outline item immediately
+    if (tocContainer && h.id) {
+      tocContainer.querySelectorAll('a').forEach((el) => {
+        const isMatch = el.getAttribute('data-target-id') === h.id || el.getAttribute('href') === `#${h.id}`;
+        el.classList.toggle('active', isMatch);
+      });
+    }
+
+    // 3. Synchronize Markdown editor to the exact heading line!
+    if (typeof line === 'number' && !isNaN(line)) {
+      lastEditorLine = line;
+      lastPreviewScrollTime = Date.now();
+      vscode.postMessage({
+        command: 'scrollEditorToLine',
+        line: line
+      });
+    }
+  }
+
   // Render TOC
   function updateTocList(headings) {
     if (!tocContainer) return;
@@ -229,13 +271,13 @@
       a.href = `#${h.id}`;
       a.textContent = h.text;
       a.dataset.targetId = h.id;
+      if (typeof h.line === 'number') {
+        a.dataset.line = String(h.line);
+      }
 
       a.addEventListener('click', (e) => {
         e.preventDefault();
-        const target = document.getElementById(h.id);
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        navigateToHeading(h);
       });
 
       li.appendChild(a);
@@ -244,6 +286,21 @@
 
     tocContainer.innerHTML = '';
     tocContainer.appendChild(ul);
+  }
+
+  function bindInitialTocLinks() {
+    if (!tocContainer) return;
+    tocContainer.querySelectorAll('a').forEach((a) => {
+      if (a.dataset.bound) return;
+      a.dataset.bound = 'true';
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = a.getAttribute('data-target-id') || (a.getAttribute('href') || '').replace(/^#/, '');
+        const lineAttr = a.getAttribute('data-line');
+        const line = lineAttr !== null ? parseInt(lineAttr, 10) : undefined;
+        navigateToHeading({ id: targetId, line: line });
+      });
+    });
   }
 
   // Bind copy buttons and interactions
@@ -336,6 +393,28 @@
         }
       });
     });
+
+    // 5. Internal Anchor links in markdown content
+    document.querySelectorAll('.antigravity-preview-content a[href^="#"]').forEach((a) => {
+      if (a.dataset.anchorBound) return;
+      a.dataset.anchorBound = 'true';
+
+      a.addEventListener('click', (e) => {
+        const href = a.getAttribute('href');
+        if (!href || href === '#') return;
+        const targetId = decodeURIComponent(href.slice(1));
+        const target = document.getElementById(targetId);
+        if (target) {
+          e.preventDefault();
+          const lineAttr = target.getAttribute('data-line');
+          const line = lineAttr !== null ? parseInt(lineAttr, 10) : undefined;
+          navigateToHeading({ id: targetId, line: line });
+        }
+      });
+    });
+
+    // 6. Bind initial TOC links if rendered statically
+    bindInitialTocLinks();
   }
 
   // Calculate absolute scroll position of an element relative to previewContentArea
@@ -455,21 +534,24 @@
       if (scrollSpyTimeout) return;
       scrollSpyTimeout = setTimeout(() => {
         scrollSpyTimeout = null;
+        if (isProgrammaticScroll) return;
         const headings = document.querySelectorAll('.antigravity-heading');
         if (headings.length === 0 || !tocContainer) return;
 
-        const containerTop = previewContentArea.scrollTop;
+        const containerRect = previewContentArea.getBoundingClientRect();
         let activeId = '';
 
         headings.forEach((heading) => {
-          if (containerTop >= heading.offsetTop - 60) {
+          const rect = heading.getBoundingClientRect();
+          if (rect.top - containerRect.top <= 80) {
             activeId = heading.id;
           }
         });
 
         if (activeId) {
           tocContainer.querySelectorAll('a').forEach((a) => {
-            if (a.dataset.targetId === activeId) {
+            const isMatch = a.dataset.targetId === activeId || a.getAttribute('href') === `#${activeId}`;
+            if (isMatch) {
               a.classList.add('active');
             } else {
               a.classList.remove('active');
