@@ -3,6 +3,9 @@ import { MarkdownPreviewPanel } from './previewPanel';
 
 export function activate(context: vscode.ExtensionContext) {
   MarkdownPreviewPanel.setContext(context);
+
+  // Automatically suppress default built-in VS Code markdown preview button
+  vscode.commands.executeCommand('setContext', 'hasCustomMarkdownPreview', true);
   // Command: Open Preview to the Side
   const openToSideCommand = vscode.commands.registerCommand(
     'antigravity.markdownPreview.openToSide',
@@ -130,6 +133,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
+  vscode.commands.executeCommand('setContext', 'hasCustomMarkdownPreview', false);
   if (MarkdownPreviewPanel.currentPanel) {
     MarkdownPreviewPanel.currentPanel.dispose();
   }

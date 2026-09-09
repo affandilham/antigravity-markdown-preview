@@ -23,7 +23,11 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onLanguage:markdown"
+    "onLanguage:markdown",
+    "onLanguage:prompt",
+    "onLanguage:instructions",
+    "onLanguage:chatmode",
+    "onStartupFinished"
   ],
   "contributes": {
     "commands": [
@@ -48,7 +52,8 @@
       "editor/title": [
         {
           "command": "antigravity.markdownPreview.openToSide",
-          "when": "editorLangId == markdown",
+          "when": "editorLangId =~ /^(markdown|prompt|instructions|chatmode)$/ && !notebookEditorFocused",
+          "alt": "antigravity.markdownPreview.open",
           "group": "navigation"
         }
       ]
