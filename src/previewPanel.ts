@@ -343,6 +343,24 @@ export class MarkdownPreviewPanel {
     </aside>
 
     <main class="preview-content-area" id="previewContentArea">
+      <!-- Minimalist Professional Skeleton Loader -->
+      <div class="preview-loading-overlay" id="previewLoadingOverlay" aria-hidden="true">
+        <div class="skeleton-container">
+          <div class="skeleton-bar skeleton-title"></div>
+          <div class="skeleton-bar skeleton-subtitle"></div>
+          <div class="skeleton-divider"></div>
+          <div class="skeleton-bar skeleton-text w90"></div>
+          <div class="skeleton-bar skeleton-text w75"></div>
+          <div class="skeleton-bar skeleton-text w85"></div>
+          <div class="skeleton-bar skeleton-text w60"></div>
+          <div class="skeleton-gap"></div>
+          <div class="skeleton-block"></div>
+          <div class="skeleton-gap"></div>
+          <div class="skeleton-bar skeleton-text w80"></div>
+          <div class="skeleton-bar skeleton-text w70"></div>
+        </div>
+      </div>
+
       <article class="antigravity-markdown-root" id="markdownRoot" style="zoom: ${savedZoom};">
         ${initialHtml}
       </article>

@@ -265,6 +265,7 @@ body.vscode-dark .toc-drawer-body a.active {
    ========================================================================== */
 
 .preview-content-area {
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
   width: 100%;
@@ -942,4 +943,114 @@ tr:hover td {
 .zoom-indicator-btn:hover {
   color: var(--ag-fg);
   background-color: var(--ag-surface-hover);
+}
+
+/* ==========================================================================
+   Professional Minimalist Loading Skeleton
+   ========================================================================== */
+
+.preview-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--ag-bg);
+  z-index: 100;
+  padding: 40px 52px;
+  overflow: hidden;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.24s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.24s ease;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .preview-loading-overlay {
+    padding: 20px 16px;
+  }
+}
+
+.preview-loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.skeleton-container {
+  max-width: 840px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.skeleton-bar,
+.skeleton-block {
+  background-color: var(--ag-surface);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle, smooth native shimmer */
+.skeleton-bar::after,
+.skeleton-block::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--ag-surface-hover) 50%,
+    transparent 100%
+  );
+  animation: ag-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes ag-skeleton-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.skeleton-title {
+  height: 30px;
+  width: 60%;
+  margin-bottom: 14px;
+  border-radius: 6px;
+}
+
+.skeleton-subtitle {
+  height: 18px;
+  width: 35%;
+  margin-bottom: 24px;
+}
+
+.skeleton-divider {
+  height: 1px;
+  background: var(--ag-border-subtle);
+  margin-bottom: 28px;
+}
+
+.skeleton-text {
+  height: 13px;
+  margin-bottom: 10px;
+}
+
+.skeleton-text.w90 { width: 90%; }
+.skeleton-text.w85 { width: 85%; }
+.skeleton-text.w80 { width: 80%; }
+.skeleton-text.w75 { width: 75%; }
+.skeleton-text.w70 { width: 70%; }
+.skeleton-text.w60 { width: 60%; }
+
+.skeleton-gap {
+  height: 20px;
+}
+
+.skeleton-block {
+  height: 100px;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid var(--ag-border-subtle);
 }

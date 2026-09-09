@@ -139,12 +139,33 @@
     }
   }, { passive: false });
 
+  let isLoadingDismissed = false;
+
+  function dismissLoading() {
+    if (isLoadingDismissed) return;
+    isLoadingDismissed = true;
+
+    const overlay = document.getElementById('previewLoadingOverlay');
+    if (overlay) {
+      overlay.classList.add('hidden');
+      setTimeout(() => {
+        try { overlay.remove(); } catch (_) {}
+      }, 300);
+    }
+  }
+
   // Mermaid render with safety and theme adaptation
   function renderMermaidDiagrams() {
     const mermaidNodes = document.querySelectorAll('.mermaid:not([data-processed="true"])');
-    if (!mermaidNodes || mermaidNodes.length === 0) return;
+    if (!mermaidNodes || mermaidNodes.length === 0) {
+      dismissLoading();
+      return;
+    }
 
-    if (!window.mermaid) return;
+    if (!window.mermaid) {
+      dismissLoading();
+      return;
+    }
 
     const dark = isDarkMode();
 
@@ -179,11 +200,15 @@
 
       window.mermaid.run({
         nodes: Array.from(mermaidNodes)
+      }).then(() => {
+        dismissLoading();
       }).catch((err) => {
         console.error('Mermaid async render error:', err);
+        dismissLoading();
       });
     } catch (err) {
       console.error('Mermaid render error:', err);
+      dismissLoading();
     }
   }
 
@@ -552,9 +577,12 @@
   setupScrollSpy();
   setupReverseScrollSync();
 
+  renderMermaidDiagrams();
+
+  // Safety fallback dismiss after 350ms
   setTimeout(() => {
-    renderMermaidDiagrams();
-  }, 100);
+    dismissLoading();
+  }, 350);
 
   // Hard lock horizontal window scrolling
   window.addEventListener('scroll', () => {
