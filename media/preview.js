@@ -200,11 +200,19 @@
     });
   }
 
+  // Calculate absolute scroll position of an element relative to previewContentArea
+  function getElementScrollTop(el) {
+    if (!previewContentArea) return 0;
+    const containerRect = previewContentArea.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    return previewContentArea.scrollTop + (elRect.top - containerRect.top);
+  }
+
   // Line-accurate Scroll Synchronization Engine (Editor -> Preview)
   function scrollToTargetLine(targetLine, fallbackPercentage) {
     if (!previewContentArea) return;
 
-    if (targetLine === 0) {
+    if (targetLine <= 0) {
       previewContentArea.scrollTop = 0;
       return;
     }
@@ -222,36 +230,37 @@
     let nextEl = null;
 
     for (let i = 0; i < elements.length; i++) {
-      const elLine = parseInt(elements[i].getAttribute('data-line'), 10);
+      const el = elements[i];
+      const elLine = parseInt(el.getAttribute('data-line'), 10);
       if (elLine <= targetLine) {
-        prevEl = elements[i];
+        prevEl = el;
       } else {
-        nextEl = elements[i];
+        nextEl = el;
         break;
       }
     }
 
     if (!prevEl && nextEl) {
-      previewContentArea.scrollTop = Math.max(0, nextEl.offsetTop - 30);
+      previewContentArea.scrollTop = Math.max(0, getElementScrollTop(nextEl) - 15);
       return;
     }
 
     if (prevEl && !nextEl) {
-      previewContentArea.scrollTop = Math.max(0, prevEl.offsetTop - 30);
+      previewContentArea.scrollTop = Math.max(0, getElementScrollTop(prevEl) - 15);
       return;
     }
 
     if (prevEl && nextEl) {
       const prevLine = parseInt(prevEl.getAttribute('data-line'), 10);
       const nextLine = parseInt(nextEl.getAttribute('data-line'), 10);
-      const prevTop = prevEl.offsetTop;
-      const nextTop = nextEl.offsetTop;
+      const prevTop = getElementScrollTop(prevEl);
+      const nextTop = getElementScrollTop(nextEl);
 
       const span = nextLine - prevLine;
       const ratio = span > 0 ? (targetLine - prevLine) / span : 0;
-      const interpolatedTop = prevTop + ratio * (nextTop - prevTop);
+      const targetY = prevTop + ratio * (nextTop - prevTop);
 
-      previewContentArea.scrollTop = Math.max(0, interpolatedTop - 30);
+      previewContentArea.scrollTop = Math.max(0, targetY - 15);
     }
   }
 
@@ -277,17 +286,18 @@
       if (!isSyncEnabled || !isUserScrollingWebview) return;
 
       const now = Date.now();
-      if (now - lastEditorScrollSendTime < 30) return; // 33fps stream to editor
+      if (now - lastEditorScrollSendTime < 30) return;
       lastEditorScrollSendTime = now;
 
-      const currentScrollTop = previewContentArea.scrollTop;
+      const containerRect = previewContentArea.getBoundingClientRect();
       const elements = Array.from(document.querySelectorAll('[data-line]'));
       if (elements.length === 0) return;
 
       let detectedLine = 0;
       for (let i = 0; i < elements.length; i++) {
         const el = elements[i];
-        if (el.offsetTop <= currentScrollTop + 50) {
+        const elRect = el.getBoundingClientRect();
+        if (elRect.top - containerRect.top <= 45) {
           detectedLine = parseInt(el.getAttribute('data-line'), 10);
         } else {
           break;
@@ -343,15 +353,12 @@
         if (markdownRoot) {
           markdownRoot.innerHTML = message.html;
         }
-        }
-        }
         updateTocList(message.headings);
         bindInteractions();
         renderMermaidDiagrams();
         break;
 
       case 'syncScroll':
-        // If the preview is currently being actively scrolled by the user, don't overwrite it
         if (isUserScrollingWebview) return;
 
         if (isSyncEnabled && previewContentArea) {
