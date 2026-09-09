@@ -80,12 +80,37 @@
            (!document.body.classList.contains('vscode-light') && window.matchMedia('(prefers-color-scheme: dark)').matches);
   }
 
+  // Dynamic Responsive Width Engine for Zoom Out & Responsive Layout
+  function updateContentWidth() {
+    if (!markdownRoot) return;
+
+    // Available content width inside previewContentArea (excluding 52px left + 52px right padding = 104px)
+    const container = previewContentArea || document.body;
+    const clientW = container.clientWidth || window.innerWidth;
+    const availableWidth = Math.max(0, clientW - 104);
+
+    if (currentZoom >= 1.0) {
+      markdownRoot.style.maxWidth = '840px';
+    } else if (currentZoom <= 0.5 || availableWidth <= 840) {
+      markdownRoot.style.maxWidth = '100%';
+    } else {
+      // Zoom out range: 1.0 down to 0.5
+      // Progressive expansion: at 0.5 it fills 100% of available space.
+      const progress = (1.0 - currentZoom) / 0.5; // 0.0 at 1.0, 1.0 at 0.5
+      const visualTargetWidth = 840 + progress * (availableWidth - 840);
+      // Convert visual target width to layout coordinates (divided by currentZoom)
+      const layoutMaxWidth = Math.round(visualTargetWidth / currentZoom);
+      markdownRoot.style.maxWidth = layoutMaxWidth + 'px';
+    }
+  }
+
   // Zoom Engine
   function applyZoom(zoomVal) {
     currentZoom = Math.min(2.0, Math.max(0.5, Math.round(zoomVal * 10) / 10));
     if (markdownRoot) {
       markdownRoot.style.zoom = String(currentZoom);
     }
+    updateContentWidth();
     if (zoomLevelEl) {
       zoomLevelEl.textContent = `${Math.round(currentZoom * 100)}%`;
     }
@@ -865,6 +890,7 @@
         if (markdownRoot) {
           markdownRoot.innerHTML = message.html;
         }
+        updateContentWidth();
         updateTocList(message.headings);
         bindInteractions();
         renderMermaidDiagrams();
@@ -901,12 +927,14 @@
     if (isTocOpen) {
       previewToolbar?.classList.remove('toolbar-hidden');
     }
+    setTimeout(updateContentWidth, 200);
   });
 
   btnCloseToc?.addEventListener('click', () => {
     isTocOpen = false;
     tocDrawer?.classList.add('closed');
     btnToggleToc?.classList.remove('active-state');
+    setTimeout(updateContentWidth, 200);
   });
 
   btnToggleSync?.addEventListener('click', () => {
@@ -944,10 +972,18 @@
   btnZoomOut?.addEventListener('click', zoomOut);
   btnZoomReset?.addEventListener('click', zoomReset);
 
-  // Apply initial zoom
-  if (markdownRoot && currentZoom !== 1.0) {
-    markdownRoot.style.zoom = String(currentZoom);
+  // Apply initial zoom and responsive content width
+  if (markdownRoot) {
+    if (currentZoom !== 1.0) {
+      markdownRoot.style.zoom = String(currentZoom);
+    }
+    updateContentWidth();
   }
+
+  // Handle window resize to adapt width dynamically
+  window.addEventListener('resize', () => {
+    updateContentWidth();
+  });
   if (zoomLevelEl) {
     zoomLevelEl.textContent = `${Math.round(currentZoom * 100)}%`;
   }

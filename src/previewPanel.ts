@@ -435,7 +435,7 @@ export class MarkdownPreviewPanel {
         </div>
       </div>
 
-      <article class="antigravity-markdown-root" id="markdownRoot" style="zoom: ${savedZoom};">
+      <article class="antigravity-markdown-root" id="markdownRoot" style="zoom: ${savedZoom}; ${savedZoom <= 0.5 ? 'max-width: 100%;' : ''}">
         ${initialHtml}
       </article>
     </main>

@@ -324,6 +324,7 @@ body.vscode-dark .toc-drawer-body a.active {
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
+  transition: max-width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .antigravity-markdown-root h1,
