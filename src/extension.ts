@@ -81,6 +81,11 @@ export function activate(context: vscode.ExtensionContext) {
   let latestPct = 0;
 
   const scrollSub = vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
+    // If this scroll was triggered by the preview itself, ignore to prevent ping-pong feedback loop!
+    if (MarkdownPreviewPanel.isSyncingFromWebview) {
+      return;
+    }
+
     if (MarkdownPreviewPanel.currentPanel && event.textEditor.document.languageId === 'markdown') {
       const config = vscode.workspace.getConfiguration('antigravity.markdownPreview');
       if (!config.get<boolean>('scrollSync', true)) return;

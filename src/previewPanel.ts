@@ -5,6 +5,7 @@ import { TocItem } from './renderer/tocPlugin';
 export class MarkdownPreviewPanel {
   public static currentPanel: MarkdownPreviewPanel | undefined;
   public static readonly viewType = 'antigravity.markdownPreview';
+  public static isSyncingFromWebview = false;
 
   private readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
@@ -12,6 +13,7 @@ export class MarkdownPreviewPanel {
   private _disposables: vscode.Disposable[] = [];
   private _markdownEngine: MarkdownEngine;
   private _updateTimeout: NodeJS.Timeout | undefined;
+  private _syncLockTimeout: NodeJS.Timeout | undefined;
 
   public static createOrShow(extensionUri: vscode.Uri, document: vscode.TextDocument, viewColumn?: vscode.ViewColumn): MarkdownPreviewPanel {
     const column = viewColumn || vscode.ViewColumn.Beside;
@@ -60,13 +62,17 @@ export class MarkdownPreviewPanel {
       async (message) => {
         switch (message.command) {
           case 'ready':
-            // Send current visible scroll position as soon as webview reports ready
-            const editor = vscode.window.activeTextEditor;
-            if (editor && editor.document === this._document && editor.visibleRanges.length > 0) {
+            const editor = vscode.window.visibleTextEditors.find(e => e.document === this._document);
+            if (editor && editor.visibleRanges.length > 0) {
               const line = editor.visibleRanges[0].start.line;
               const total = editor.document.lineCount;
               const pct = total > 1 ? line / (total - 1) : 0;
               this.syncScroll(line, pct);
+            }
+            break;
+          case 'scrollEditorToLine':
+            if (typeof message.line === 'number') {
+              this.scrollEditorToLine(message.line);
             }
             break;
           case 'copyText':
@@ -130,6 +136,24 @@ export class MarkdownPreviewPanel {
       line: line,
       percentage: percentage
     });
+  }
+
+  public scrollEditorToLine(line: number): void {
+    const editor = vscode.window.visibleTextEditors.find(e => e.document === this._document);
+    if (!editor) return;
+
+    const targetLine = Math.min(Math.max(0, line), editor.document.lineCount - 1);
+    const range = new vscode.Range(targetLine, 0, targetLine, 0);
+
+    MarkdownPreviewPanel.isSyncingFromWebview = true;
+    editor.revealRange(range, vscode.TextEditorRevealType.AtTop);
+
+    if (this._syncLockTimeout) {
+      clearTimeout(this._syncLockTimeout);
+    }
+    this._syncLockTimeout = setTimeout(() => {
+      MarkdownPreviewPanel.isSyncingFromWebview = false;
+    }, 60);
   }
 
   public async exportStandaloneHtml(): Promise<void> {

@@ -5,6 +5,11 @@
   let isTocOpen = false;
   let mermaidInitialized = false;
 
+  // Bidirectional scroll sync flags
+  let isUserScrollingWebview = false;
+  let userScrollResetTimer = null;
+  let lastEditorScrollSendTime = 0;
+
   const markdownRoot = document.getElementById('markdownRoot');
   const previewContentArea = document.getElementById('previewContentArea');
   const tocContainer = document.getElementById('tocContainer');
@@ -197,7 +202,7 @@
     });
   }
 
-  // Line-accurate Scroll Synchronization Engine
+  // Line-accurate Scroll Synchronization Engine (Editor -> Preview)
   function scrollToTargetLine(targetLine, fallbackPercentage) {
     if (!previewContentArea) return;
 
@@ -250,6 +255,52 @@
 
       previewContentArea.scrollTop = Math.max(0, interpolatedTop - 30);
     }
+  }
+
+  // Reverse Scroll Synchronization Engine (Preview -> Editor)
+  function setupReverseScrollSync() {
+    if (!previewContentArea) return;
+
+    function markUserScrolling() {
+      isUserScrollingWebview = true;
+      if (userScrollResetTimer) {
+        clearTimeout(userScrollResetTimer);
+      }
+      userScrollResetTimer = setTimeout(() => {
+        isUserScrollingWebview = false;
+      }, 300);
+    }
+
+    previewContentArea.addEventListener('wheel', markUserScrolling, { passive: true });
+    previewContentArea.addEventListener('touchmove', markUserScrolling, { passive: true });
+    previewContentArea.addEventListener('pointerdown', markUserScrolling, { passive: true });
+
+    previewContentArea.addEventListener('scroll', () => {
+      if (!isSyncEnabled || !isUserScrollingWebview) return;
+
+      const now = Date.now();
+      if (now - lastEditorScrollSendTime < 30) return; // 33fps stream to editor
+      lastEditorScrollSendTime = now;
+
+      const currentScrollTop = previewContentArea.scrollTop;
+      const elements = Array.from(document.querySelectorAll('[data-line]'));
+      if (elements.length === 0) return;
+
+      let detectedLine = 0;
+      for (let i = 0; i < elements.length; i++) {
+        const el = elements[i];
+        if (el.offsetTop <= currentScrollTop + 50) {
+          detectedLine = parseInt(el.getAttribute('data-line'), 10);
+        } else {
+          break;
+        }
+      }
+
+      vscode.postMessage({
+        command: 'scrollEditorToLine',
+        line: detectedLine
+      });
+    }, { passive: true });
   }
 
   // ScrollSpy for TOC
@@ -306,6 +357,9 @@
         break;
 
       case 'syncScroll':
+        // If the preview is currently being actively scrolled by the user, don't overwrite it
+        if (isUserScrollingWebview) return;
+
         if (isSyncEnabled && previewContentArea) {
           if (typeof message.line === 'number') {
             scrollToTargetLine(message.line, message.percentage);
@@ -347,6 +401,7 @@
   // Initial setup
   bindInteractions();
   setupScrollSpy();
+  setupReverseScrollSync();
 
   setTimeout(() => {
     renderMermaidDiagrams();
