@@ -526,13 +526,15 @@
     }, { passive: true });
   }
 
-  // Auto-hide and auto-show toolbar on scroll for effortless, comfortable reading
+  // Auto-hide and auto-show toolbar on scroll with deliberate distance threshold & gentle animation
   function setupAutoHideToolbar() {
     if (!previewToolbar || !previewContentArea) return;
 
     let lastScrollTop = previewContentArea.scrollTop;
     let isToolbarHidden = false;
     let isMouseNearTop = false;
+    let accumulatedUp = 0;
+    let accumulatedDown = 0;
 
     function hideToolbar() {
       if (isToolbarHidden || isTocOpen) return;
@@ -551,9 +553,11 @@
       const currentScrollTop = previewContentArea.scrollTop;
       const delta = currentScrollTop - lastScrollTop;
 
-      // 1. At or near document top: ALWAYS show toolbar
+      // 1. At or near document top: ALWAYS show toolbar immediately
       if (currentScrollTop <= 35) {
         showToolbar();
+        accumulatedUp = 0;
+        accumulatedDown = 0;
         lastScrollTop = currentScrollTop;
         return;
       }
@@ -561,6 +565,8 @@
       // 2. If Outline drawer is active: stay visible
       if (isTocOpen) {
         showToolbar();
+        accumulatedUp = 0;
+        accumulatedDown = 0;
         lastScrollTop = currentScrollTop;
         return;
       }
@@ -571,25 +577,31 @@
         return;
       }
 
-      // 4. Ignore tiny touchpad / scroll jitter (< 6px)
-      if (Math.abs(delta) < 6) {
-        return;
-      }
-
-      // 5. Prevent bottom overscroll bounce from triggering false show
+      // 4. Prevent bottom overscroll bounce from triggering false show
       const maxScroll = previewContentArea.scrollHeight - previewContentArea.clientHeight;
       if (currentScrollTop >= maxScroll - 10 && delta > 0) {
         lastScrollTop = currentScrollTop;
         return;
       }
 
-      // 6. User scrolls DOWN -> auto-hide toolbar
-      if (delta > 0 && currentScrollTop > 50) {
-        hideToolbar();
-      }
-      // 7. User scrolls UP -> auto-show toolbar
-      else if (delta < 0) {
-        showToolbar();
+      // 5. Track directional accumulated scroll
+      if (delta > 0) {
+        // User is scrolling DOWN
+        accumulatedDown += delta;
+        accumulatedUp = 0;
+
+        if (accumulatedDown >= 25 && currentScrollTop > 50) {
+          hideToolbar();
+        }
+      } else if (delta < 0) {
+        // User is scrolling UP
+        accumulatedUp += Math.abs(delta);
+        accumulatedDown = 0;
+
+        // Require deliberate upward scroll distance (>= 45px) so it does not pop in suddenly
+        if (accumulatedUp >= 45) {
+          showToolbar();
+        }
       }
 
       lastScrollTop = currentScrollTop;
@@ -597,7 +609,7 @@
 
     // Effortless mouse peek: moving mouse near top edge smoothly reveals toolbar
     window.addEventListener('mousemove', (e) => {
-      if (e.clientY <= 38) {
+      if (e.clientY <= 25) {
         isMouseNearTop = true;
         showToolbar();
       } else if (e.clientY > 65) {
