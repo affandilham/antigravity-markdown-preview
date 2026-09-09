@@ -16,6 +16,44 @@
   let isUserScrollingWebview = false;
   let userScrollResetTimer = null;
   let lastEditorScrollSendTime = 0;
+  let isProgrammaticScroll = false;
+  let programmaticScrollTimer = null;
+
+  // Sync state tracking across toggle events
+  let lastScrollSource = 'editor'; // 'editor' | 'preview'
+  let lastEditorScrollTime = 0;
+  let lastPreviewScrollTime = 0;
+  let lastEditorLine = 0;
+  let lastEditorPercentage = 0;
+
+  function markProgrammaticScroll() {
+    isProgrammaticScroll = true;
+    if (programmaticScrollTimer) {
+      clearTimeout(programmaticScrollTimer);
+    }
+    programmaticScrollTimer = setTimeout(() => {
+      isProgrammaticScroll = false;
+    }, 150);
+  }
+
+  function getCurrentPreviewTopLine() {
+    if (!previewContentArea) return 0;
+    const containerRect = previewContentArea.getBoundingClientRect();
+    const elements = Array.from(document.querySelectorAll('[data-line]'));
+    if (elements.length === 0) return 0;
+
+    let detectedLine = 0;
+    for (let i = 0; i < elements.length; i++) {
+      const el = elements[i];
+      const elRect = el.getBoundingClientRect();
+      if (elRect.top - containerRect.top <= 45) {
+        detectedLine = parseInt(el.getAttribute('data-line'), 10);
+      } else {
+        break;
+      }
+    }
+    return detectedLine;
+  }
 
   const markdownRoot = document.getElementById('markdownRoot');
   const previewContentArea = document.getElementById('previewContentArea');
@@ -286,6 +324,7 @@
   // Line-accurate Scroll Synchronization Engine (Editor -> Preview)
   function scrollToTargetLine(targetLine, fallbackPercentage) {
     if (!previewContentArea) return;
+    markProgrammaticScroll();
 
     if (targetLine <= 0) {
       previewContentArea.scrollTop = 0;
@@ -362,26 +401,18 @@
         previewContentArea.scrollLeft = 0;
       }
 
+      if (!isProgrammaticScroll) {
+        lastScrollSource = 'preview';
+        lastPreviewScrollTime = Date.now();
+      }
+
       if (!isSyncEnabled || !isUserScrollingWebview) return;
 
       const now = Date.now();
       if (now - lastEditorScrollSendTime < 30) return;
       lastEditorScrollSendTime = now;
 
-      const containerRect = previewContentArea.getBoundingClientRect();
-      const elements = Array.from(document.querySelectorAll('[data-line]'));
-      if (elements.length === 0) return;
-
-      let detectedLine = 0;
-      for (let i = 0; i < elements.length; i++) {
-        const el = elements[i];
-        const elRect = el.getBoundingClientRect();
-        if (elRect.top - containerRect.top <= 45) {
-          detectedLine = parseInt(el.getAttribute('data-line'), 10);
-        } else {
-          break;
-        }
-      }
+      const detectedLine = getCurrentPreviewTopLine();
 
       vscode.postMessage({
         command: 'scrollEditorToLine',
@@ -438,12 +469,20 @@
         break;
 
       case 'syncScroll':
+        lastEditorLine = message.line;
+        lastEditorPercentage = message.percentage;
+        lastEditorScrollTime = Date.now();
+        if (!isUserScrollingWebview) {
+          lastScrollSource = 'editor';
+        }
+
         if (isUserScrollingWebview) return;
 
         if (isSyncEnabled && previewContentArea) {
           if (typeof message.line === 'number') {
             scrollToTargetLine(message.line, message.percentage);
           } else if (typeof message.percentage === 'number') {
+            markProgrammaticScroll();
             const maxScroll = previewContentArea.scrollHeight - previewContentArea.clientHeight;
             previewContentArea.scrollTop = message.percentage * maxScroll;
           }
@@ -468,6 +507,23 @@
   btnToggleSync?.addEventListener('click', () => {
     isSyncEnabled = !isSyncEnabled;
     btnToggleSync.classList.toggle('active-state', isSyncEnabled);
+
+    if (isSyncEnabled) {
+      if (lastScrollSource === 'preview' && (lastPreviewScrollTime > lastEditorScrollTime)) {
+        // Case 2: Preview was scrolled while Sync was OFF -> immediately sync Editor to Preview
+        const line = getCurrentPreviewTopLine();
+        vscode.postMessage({
+          command: 'scrollEditorToLine',
+          line: line
+        });
+      } else {
+        // Case 1: Editor was scrolled while Sync was OFF -> immediately sync Preview to Editor
+        if (typeof lastEditorLine === 'number' && lastEditorLine >= 0) {
+          scrollToTargetLine(lastEditorLine, lastEditorPercentage);
+        }
+        vscode.postMessage({ command: 'requestSyncFromEditor' });
+      }
+    }
   });
 
   btnExportHtml?.addEventListener('click', () => {

@@ -107,6 +107,17 @@ export class MarkdownPreviewPanel {
               MarkdownPreviewPanel.saveZoomLevel(message.zoom);
             }
             break;
+          case 'requestSyncFromEditor':
+            const activeEditor = vscode.window.activeTextEditor?.document === this._document 
+              ? vscode.window.activeTextEditor 
+              : vscode.window.visibleTextEditors.find(e => e.document === this._document);
+            if (activeEditor && activeEditor.visibleRanges.length > 0) {
+              const line = activeEditor.visibleRanges[0].start.line;
+              const total = activeEditor.document.lineCount;
+              const pct = total > 1 ? line / (total - 1) : 0;
+              this.syncScroll(line, pct);
+            }
+            break;
         }
       },
       null,
