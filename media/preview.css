@@ -101,12 +101,15 @@ body.antigravity-preview-body {
 .preview-toolbar {
   height: 38px;
   min-height: 38px;
+  max-height: 38px;
   background-color: var(--ag-surface);
   border-bottom: 1px solid var(--ag-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 14px;
+  box-sizing: border-box;
+  flex: 0 0 38px;
   z-index: 10;
 }
 
@@ -114,6 +117,7 @@ body.antigravity-preview-body {
 .toolbar-right {
   display: flex;
   align-items: center;
+  height: 100%;
   gap: 6px;
 }
 
@@ -122,11 +126,15 @@ body.antigravity-preview-body {
   color: var(--ag-fg-muted);
   border: 1px solid transparent;
   border-radius: 4px;
-  padding: 4px 8px;
+  height: 26px;
+  line-height: 1;
+  box-sizing: border-box;
+  padding: 0 8px;
   font-size: 12px;
   font-weight: 500;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -147,7 +155,9 @@ body.vscode-dark .toolbar-btn.active-state {
 }
 
 .toolbar-btn.icon-only {
-  padding: 4px 6px;
+  padding: 0 6px;
+  width: 26px;
+  height: 26px;
 }
 
 /* ==========================================================================
@@ -898,8 +908,10 @@ tr:hover td {
    ========================================================================== */
 
 .zoom-controls {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  height: 26px;
+  box-sizing: border-box;
   border: 1px solid var(--ag-border);
   border-radius: 4px;
   background-color: var(--ag-surface);
@@ -910,9 +922,12 @@ tr:hover td {
 .zoom-controls .toolbar-btn {
   border: none;
   border-radius: 0;
-  padding: 4px 6px;
-  height: 26px;
-  display: flex;
+  padding: 0 6px;
+  height: 100%;
+  width: 24px;
+  line-height: 1;
+  box-sizing: border-box;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
 }
@@ -929,12 +944,14 @@ tr:hover td {
   color: var(--ag-fg-muted);
   font-family: var(--ag-mono);
   font-size: 11px;
+  line-height: 1;
   padding: 0 6px;
-  height: 26px;
+  height: 100%;
   min-width: 44px;
   text-align: center;
+  box-sizing: border-box;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease;
