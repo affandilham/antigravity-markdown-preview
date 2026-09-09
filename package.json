@@ -40,7 +40,8 @@
       {
         "command": "antigravity.markdownPreview.open",
         "title": "Antigravity Markdown: Open Preview",
-        "category": "Antigravity Preview"
+        "category": "Antigravity Preview",
+        "icon": "$(open-preview)"
       },
       {
         "command": "antigravity.markdownPreview.exportHtml",
@@ -53,7 +54,6 @@
         {
           "command": "antigravity.markdownPreview.openToSide",
           "when": "editorLangId =~ /^(markdown|prompt|instructions|chatmode)$/ && !notebookEditorFocused",
-          "alt": "antigravity.markdownPreview.open",
           "group": "navigation"
         }
       ]
