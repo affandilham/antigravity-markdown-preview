@@ -14,8 +14,6 @@
   const previewContentArea = document.getElementById('previewContentArea');
   const tocContainer = document.getElementById('tocContainer');
   const tocDrawer = document.getElementById('tocDrawer');
-  const docTitleEl = document.getElementById('docTitle');
-  const docStatsEl = document.getElementById('docStats');
 
   const btnToggleToc = document.getElementById('btnToggleToc');
   const btnCloseToc = document.getElementById('btnCloseToc');
@@ -345,11 +343,7 @@
         if (markdownRoot) {
           markdownRoot.innerHTML = message.html;
         }
-        if (docTitleEl && message.title) {
-          docTitleEl.textContent = message.title;
         }
-        if (docStatsEl && message.stats) {
-          docStatsEl.textContent = message.stats;
         }
         updateTocList(message.headings);
         bindInteractions();

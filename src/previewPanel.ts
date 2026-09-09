@@ -105,10 +105,9 @@ export class MarkdownPreviewPanel {
   public refresh(): void {
     const text = this._document.getText();
     const { html, headings } = this._markdownEngine.render(text);
-    const stats = computeStats(text);
     const title = getFileName(this._document.fileName);
 
-    this._panel.webview.html = this._getHtmlForWebview(html, headings, stats, title);
+    this._panel.webview.html = this._getHtmlForWebview(html, headings, title);
   }
 
   public updateContent(): void {
@@ -118,13 +117,11 @@ export class MarkdownPreviewPanel {
     this._updateTimeout = setTimeout(() => {
       const text = this._document.getText();
       const { html, headings } = this._markdownEngine.render(text);
-      const stats = computeStats(text);
 
       this._panel.webview.postMessage({
         command: 'update',
         html,
         headings,
-        stats,
         title: getFileName(this._document.fileName)
       });
     }, 40);
@@ -224,7 +221,7 @@ export class MarkdownPreviewPanel {
     vscode.window.showInformationMessage(`Exported Markdown to ${targetUri.fsPath}`);
   }
 
-  private _getHtmlForWebview(initialHtml: string, headings: TocItem[], stats: string, title: string): string {
+  private _getHtmlForWebview(initialHtml: string, headings: TocItem[], title: string): string {
     const webview = this._panel.webview;
     const mediaUri = vscode.Uri.joinPath(this._extensionUri, 'media');
 
@@ -267,11 +264,6 @@ export class MarkdownPreviewPanel {
         </svg>
         <span>Sync</span>
       </button>
-    </div>
-
-    <div class="toolbar-center">
-      <span class="preview-doc-title" id="docTitle">${escapeHtml(title)}</span>
-      <span class="doc-badge" id="docStats">${escapeHtml(stats)}</span>
     </div>
 
     <div class="toolbar-right">
@@ -332,12 +324,6 @@ export class MarkdownPreviewPanel {
 function getFileName(filePath: string): string {
   const parts = filePath.split(/[\\\/]/);
   return parts[parts.length - 1] || 'Document';
-}
-
-function computeStats(markdown: string): string {
-  const words = markdown.trim().split(/\s+/).filter(Boolean).length;
-  const readMinutes = Math.max(1, Math.ceil(words / 200));
-  return `${words} words · ${readMinutes} min read`;
 }
 
 function escapeHtml(str: string): string {
