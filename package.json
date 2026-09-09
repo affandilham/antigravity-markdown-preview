@@ -1,0 +1,113 @@
+{
+  "name": "antigravity-markdown-preview",
+  "displayName": "Antigravity Markdown Preview",
+  "description": "Rich Markdown preview for Antigravity IDE with GitHub alerts, mermaid, plantuml, code blocks, collapsible sections, TOC, and rich embeds.",
+  "version": "0.1.0",
+  "publisher": "mlkyjuicee",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "markdown",
+    "preview",
+    "mermaid",
+    "plantuml",
+    "alerts",
+    "toc",
+    "antigravity"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "antigravity.markdownPreview.openToSide",
+        "title": "Antigravity Markdown: Open Preview to the Side",
+        "category": "Antigravity Preview",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "antigravity.markdownPreview.open",
+        "title": "Antigravity Markdown: Open Preview",
+        "category": "Antigravity Preview"
+      },
+      {
+        "command": "antigravity.markdownPreview.exportHtml",
+        "title": "Antigravity Markdown: Export as Standalone HTML",
+        "category": "Antigravity Preview"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "antigravity.markdownPreview.openToSide",
+          "when": "editorLangId == markdown",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "antigravity.markdownPreview.openToSide",
+        "key": "cmd+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorTextFocus && editorLangId == markdown"
+      },
+      {
+        "command": "antigravity.markdownPreview.openToSide",
+        "key": "cmd+k v",
+        "mac": "cmd+k v",
+        "when": "editorTextFocus && editorLangId == markdown"
+      }
+    ],
+    "configuration": {
+      "title": "Antigravity Markdown Preview",
+      "properties": {
+        "antigravity.markdownPreview.scrollSync": {
+          "type": "boolean",
+          "default": true,
+          "description": "Synchronize editor scroll with preview scroll."
+        },
+        "antigravity.markdownPreview.plantumlServer": {
+          "type": "string",
+          "default": "https://kroki.io",
+          "description": "PlantUML rendering server URL (e.g., https://kroki.io or https://www.plantuml.com/plantuml)."
+        },
+        "antigravity.markdownPreview.codeLineNumbers": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show line numbers inside code blocks."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "bundle": "node esbuild.config.js",
+    "build": "node esbuild.config.js --production",
+    "install-extension": "node scripts/install-local.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.21.5",
+    "mermaid": "^11.17.2",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "@types/markdown-it": "^14.1.1",
+    "@types/pako": "^2.0.3",
+    "highlight.js": "^11.9.0",
+    "markdown-it": "^14.1.0",
+    "pako": "^2.1.0"
+  }
+}
