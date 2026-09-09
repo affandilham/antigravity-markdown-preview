@@ -7,6 +7,7 @@ import { plantumlPlugin } from './plantumlPlugin';
 import { embedPlugin } from './embedPlugin';
 import { tocPlugin, extractHeadings, TocItem } from './tocPlugin';
 import { tablePlugin } from './tablePlugin';
+import { sourceMapPlugin } from './sourceMapPlugin';
 
 export interface MarkdownEngineConfig {
   plantumlServer?: string;
@@ -29,6 +30,10 @@ export class MarkdownEngine {
   }
 
   private setupPlugins(): void {
+    // 1. Source map line tagging for exact 1:1 scroll synchronization
+    this.md.use(sourceMapPlugin);
+
+    // 2. Specialized feature plugins
     this.md.use(alertPlugin);
     this.md.use(codeBlockPlugin, {
       lineNumbers: this.config.codeLineNumbers ?? true
@@ -44,8 +49,11 @@ export class MarkdownEngine {
   }
 
   private setupHorizontalRule(): void {
-    this.md.renderer.rules.hr = () => {
-      return `<hr class="antigravity-hr" />\n`;
+    const originalHr = this.md.renderer.rules.hr || ((tokens, idx, options, env, self) => self.renderToken(tokens, idx, options));
+    this.md.renderer.rules.hr = (tokens, idx, options, env, self) => {
+      const token = tokens[idx];
+      const lineAttr = token.map ? ` data-line="${token.map[0]}"` : '';
+      return `<hr class="antigravity-hr"${lineAttr} />\n`;
     };
   }
 

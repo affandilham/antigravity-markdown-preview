@@ -28,10 +28,7 @@
     const mermaidNodes = document.querySelectorAll('.mermaid:not([data-processed="true"])');
     if (!mermaidNodes || mermaidNodes.length === 0) return;
 
-    if (!window.mermaid) {
-      console.warn('Mermaid library not loaded yet');
-      return;
-    }
+    if (!window.mermaid) return;
 
     const dark = isDarkMode();
 
@@ -200,6 +197,61 @@
     });
   }
 
+  // Line-accurate Scroll Synchronization Engine
+  function scrollToTargetLine(targetLine, fallbackPercentage) {
+    if (!previewContentArea) return;
+
+    if (targetLine === 0) {
+      previewContentArea.scrollTop = 0;
+      return;
+    }
+
+    const elements = Array.from(document.querySelectorAll('[data-line]'));
+    if (elements.length === 0) {
+      if (typeof fallbackPercentage === 'number') {
+        const maxScroll = previewContentArea.scrollHeight - previewContentArea.clientHeight;
+        previewContentArea.scrollTop = fallbackPercentage * maxScroll;
+      }
+      return;
+    }
+
+    let prevEl = null;
+    let nextEl = null;
+
+    for (let i = 0; i < elements.length; i++) {
+      const elLine = parseInt(elements[i].getAttribute('data-line'), 10);
+      if (elLine <= targetLine) {
+        prevEl = elements[i];
+      } else {
+        nextEl = elements[i];
+        break;
+      }
+    }
+
+    if (!prevEl && nextEl) {
+      previewContentArea.scrollTop = Math.max(0, nextEl.offsetTop - 30);
+      return;
+    }
+
+    if (prevEl && !nextEl) {
+      previewContentArea.scrollTop = Math.max(0, prevEl.offsetTop - 30);
+      return;
+    }
+
+    if (prevEl && nextEl) {
+      const prevLine = parseInt(prevEl.getAttribute('data-line'), 10);
+      const nextLine = parseInt(nextEl.getAttribute('data-line'), 10);
+      const prevTop = prevEl.offsetTop;
+      const nextTop = nextEl.offsetTop;
+
+      const span = nextLine - prevLine;
+      const ratio = span > 0 ? (targetLine - prevLine) / span : 0;
+      const interpolatedTop = prevTop + ratio * (nextTop - prevTop);
+
+      previewContentArea.scrollTop = Math.max(0, interpolatedTop - 30);
+    }
+  }
+
   // ScrollSpy for TOC
   let scrollSpyTimeout;
   function setupScrollSpy() {
@@ -254,10 +306,11 @@
         break;
 
       case 'syncScroll':
-        // Pure Instant Stream - 0ms delay, zero jitter
-        if (isSyncEnabled && previewContentArea && typeof message.percentage === 'number') {
-          const maxScroll = previewContentArea.scrollHeight - previewContentArea.clientHeight;
-          if (maxScroll > 0) {
+        if (isSyncEnabled && previewContentArea) {
+          if (typeof message.line === 'number') {
+            scrollToTargetLine(message.line, message.percentage);
+          } else if (typeof message.percentage === 'number') {
+            const maxScroll = previewContentArea.scrollHeight - previewContentArea.clientHeight;
             previewContentArea.scrollTop = message.percentage * maxScroll;
           }
         }

@@ -11,7 +11,12 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showWarningMessage('Please open a Markdown file to preview.');
         return;
       }
-      MarkdownPreviewPanel.createOrShow(context.extensionUri, editor.document, vscode.ViewColumn.Beside);
+      const panel = MarkdownPreviewPanel.createOrShow(context.extensionUri, editor.document, vscode.ViewColumn.Beside);
+      if (editor.visibleRanges.length > 0) {
+        const line = editor.visibleRanges[0].start.line;
+        const total = editor.document.lineCount;
+        panel.syncScroll(line, total > 1 ? line / (total - 1) : 0);
+      }
     }
   );
 
@@ -24,7 +29,12 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showWarningMessage('Please open a Markdown file to preview.');
         return;
       }
-      MarkdownPreviewPanel.createOrShow(context.extensionUri, editor.document, vscode.ViewColumn.Active);
+      const panel = MarkdownPreviewPanel.createOrShow(context.extensionUri, editor.document, vscode.ViewColumn.Active);
+      if (editor.visibleRanges.length > 0) {
+        const line = editor.visibleRanges[0].start.line;
+        const total = editor.document.lineCount;
+        panel.syncScroll(line, total > 1 ? line / (total - 1) : 0);
+      }
     }
   );
 
@@ -56,19 +66,24 @@ export function activate(context: vscode.ExtensionContext) {
   const changeEditorSub = vscode.window.onDidChangeActiveTextEditor((editor) => {
     if (MarkdownPreviewPanel.currentPanel && editor && editor.document.languageId === 'markdown') {
       MarkdownPreviewPanel.currentPanel.setDocument(editor.document);
+      if (editor.visibleRanges.length > 0) {
+        const line = editor.visibleRanges[0].start.line;
+        const total = editor.document.lineCount;
+        MarkdownPreviewPanel.currentPanel.syncScroll(line, total > 1 ? line / (total - 1) : 0);
+      }
     }
   });
 
-  // Event: Real-time 60fps streaming scroll synchronization
+  // Event: Real-time 60fps streaming scroll synchronization with line tracking
   let lastScrollTimestamp = 0;
   let scrollTrailingTimer: NodeJS.Timeout | null = null;
-  let latestScrollPercentage = 0;
+  let latestLine = 0;
+  let latestPct = 0;
 
   const scrollSub = vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
     if (MarkdownPreviewPanel.currentPanel && event.textEditor.document.languageId === 'markdown') {
       const config = vscode.workspace.getConfiguration('antigravity.markdownPreview');
-      const isSyncEnabled = config.get<boolean>('scrollSync', true);
-      if (!isSyncEnabled) return;
+      if (!config.get<boolean>('scrollSync', true)) return;
 
       const ranges = event.visibleRanges;
       if (ranges.length === 0) return;
@@ -76,22 +91,22 @@ export function activate(context: vscode.ExtensionContext) {
       const topVisibleLine = ranges[0].start.line;
       const totalLines = event.textEditor.document.lineCount;
       const percentage = totalLines > 1 ? topVisibleLine / (totalLines - 1) : 0;
-      latestScrollPercentage = percentage;
+      
+      latestLine = topVisibleLine;
+      latestPct = percentage;
 
       const now = Date.now();
       const elapsed = now - lastScrollTimestamp;
 
-      // Stream immediately if more than 16ms (~60fps) has elapsed
       if (elapsed >= 16) {
         lastScrollTimestamp = now;
-        MarkdownPreviewPanel.currentPanel.syncScroll(percentage);
+        MarkdownPreviewPanel.currentPanel.syncScroll(topVisibleLine, percentage);
       } else {
-        // Otherwise schedule trailing frame so no position is ever lost
         if (!scrollTrailingTimer) {
           scrollTrailingTimer = setTimeout(() => {
             scrollTrailingTimer = null;
             lastScrollTimestamp = Date.now();
-            MarkdownPreviewPanel.currentPanel?.syncScroll(latestScrollPercentage);
+            MarkdownPreviewPanel.currentPanel?.syncScroll(latestLine, latestPct);
           }, 16 - elapsed);
         }
       }

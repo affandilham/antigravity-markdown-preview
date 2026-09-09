@@ -12,8 +12,9 @@ export function mermaidPlugin(md: MarkdownIt): void {
       const code = token.content.trim();
       const encoded = encodeURIComponent(code);
       const diagramId = `mermaid-${idx}-${Math.random().toString(36).substring(2, 8)}`;
+      const lineAttr = token.map ? ` data-line="${token.map[0]}"` : '';
 
-      return `<div class="antigravity-diagram-card mermaid-card" id="card-${diagramId}">
+      return `<div class="antigravity-diagram-card mermaid-card"${lineAttr} id="card-${diagramId}">
   <div class="diagram-header">
     <div class="diagram-type">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">

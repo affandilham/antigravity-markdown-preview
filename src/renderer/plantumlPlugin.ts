@@ -15,8 +15,9 @@ export function plantumlPlugin(md: MarkdownIt, options?: { serverUrl?: string })
       const svgUrl = getPlantUmlSvgUrl(pumlCode, serverUrl);
       const encodedCode = encodeURIComponent(pumlCode);
       const diagramId = `puml-${idx}-${Math.random().toString(36).substring(2, 8)}`;
+      const lineAttr = token.map ? ` data-line="${token.map[0]}"` : '';
 
-      return `<div class="antigravity-diagram-card plantuml-card" id="card-${diagramId}">
+      return `<div class="antigravity-diagram-card plantuml-card"${lineAttr} id="card-${diagramId}">
   <div class="diagram-header">
     <div class="diagram-type">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
@@ -34,8 +35,7 @@ export function plantumlPlugin(md: MarkdownIt, options?: { serverUrl?: string })
     </div>
   </div>
   <div class="diagram-body plantuml-body">
-    <div class="diagram-loading" id="loader-${diagramId}">Rendering PlantUML...</div>
-    <img class="plantuml-svg-img" id="${diagramId}" src="${svgUrl}" alt="PlantUML Diagram" loading="lazy" onload="document.getElementById('loader-${diagramId}')?.remove();" onerror="this.alt='Failed to render PlantUML'; this.style.display='none';" />
+    <img class="plantuml-svg-img" id="${diagramId}" src="${svgUrl}" alt="PlantUML Diagram" loading="lazy" onerror="this.alt='Failed to render PlantUML'; this.style.display='none';" />
   </div>
 </div>\n`;
     }

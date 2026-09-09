@@ -48,8 +48,9 @@ export function codeBlockPlugin(md: MarkdownIt, options?: { lineNumbers?: boolea
 
     const displayLang = (lang || validLang || 'code').toLowerCase();
     const encodedRaw = encodeURIComponent(code);
+    const lineAttr = token.map ? ` data-line="${token.map[0]}"` : '';
 
-    return `<div class="antigravity-code-block" data-lang="${displayLang}">
+    return `<div class="antigravity-code-block"${lineAttr} data-lang="${displayLang}">
   <div class="code-block-header">
     <span class="code-lang-label">${displayLang}</span>
     <button class="copy-code-btn" data-code="${encodedRaw}" title="Copy code" type="button">

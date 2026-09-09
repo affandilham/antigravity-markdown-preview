@@ -9,8 +9,11 @@ export function tablePlugin(md: MarkdownIt): void {
     ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));
 
   md.renderer.rules.table_open = (tokens, idx, options, env, self) => {
+    const token = tokens[idx];
     const tableId = `table-${idx}-${Math.random().toString(36).substring(2, 7)}`;
-    return `<div class="antigravity-table-wrapper" id="${tableId}">
+    const lineAttr = token.map ? ` data-line="${token.map[0]}"` : '';
+
+    return `<div class="antigravity-table-wrapper"${lineAttr} id="${tableId}">
   <div class="table-toolbar">
     <span class="table-badge">Table</span>
     <button class="copy-table-btn" data-target="${tableId}" title="Copy Table Data" type="button">

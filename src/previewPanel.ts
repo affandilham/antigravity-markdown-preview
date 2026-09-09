@@ -12,7 +12,6 @@ export class MarkdownPreviewPanel {
   private _disposables: vscode.Disposable[] = [];
   private _markdownEngine: MarkdownEngine;
   private _updateTimeout: NodeJS.Timeout | undefined;
-  private _isWebviewReady = false;
 
   public static createOrShow(extensionUri: vscode.Uri, document: vscode.TextDocument, viewColumn?: vscode.ViewColumn): MarkdownPreviewPanel {
     const column = viewColumn || vscode.ViewColumn.Beside;
@@ -53,7 +52,6 @@ export class MarkdownPreviewPanel {
       codeLineNumbers: config.get<boolean>('codeLineNumbers', true)
     });
 
-    // Instant initial render directly in HTML
     this.refresh();
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -62,7 +60,14 @@ export class MarkdownPreviewPanel {
       async (message) => {
         switch (message.command) {
           case 'ready':
-            this._isWebviewReady = true;
+            // Send current visible scroll position as soon as webview reports ready
+            const editor = vscode.window.activeTextEditor;
+            if (editor && editor.document === this._document && editor.visibleRanges.length > 0) {
+              const line = editor.visibleRanges[0].start.line;
+              const total = editor.document.lineCount;
+              const pct = total > 1 ? line / (total - 1) : 0;
+              this.syncScroll(line, pct);
+            }
             break;
           case 'copyText':
             if (message.text) {
@@ -97,18 +102,13 @@ export class MarkdownPreviewPanel {
     const stats = computeStats(text);
     const title = getFileName(this._document.fileName);
 
-    if (!this._isWebviewReady) {
-      this._panel.webview.html = this._getHtmlForWebview(html, headings, stats, title);
-    } else {
-      this.updateContent();
-    }
+    this._panel.webview.html = this._getHtmlForWebview(html, headings, stats, title);
   }
 
   public updateContent(): void {
     if (this._updateTimeout) {
       clearTimeout(this._updateTimeout);
     }
-    // 40ms fast streaming update when editing text
     this._updateTimeout = setTimeout(() => {
       const text = this._document.getText();
       const { html, headings } = this._markdownEngine.render(text);
@@ -124,11 +124,11 @@ export class MarkdownPreviewPanel {
     }, 40);
   }
 
-  public syncScroll(topPercentage: number): void {
-    if (!this._isWebviewReady) return;
+  public syncScroll(line: number, percentage: number): void {
     this._panel.webview.postMessage({
       command: 'syncScroll',
-      percentage: topPercentage
+      line: line,
+      percentage: percentage
     });
   }
 
@@ -210,7 +210,6 @@ export class MarkdownPreviewPanel {
 
     const nonce = getNonce();
 
-    // Build initial TOC HTML
     let initialTocHtml = '<p class="toc-empty">No headings found.</p>';
     if (headings && headings.length > 0) {
       initialTocHtml = '<ul>';
