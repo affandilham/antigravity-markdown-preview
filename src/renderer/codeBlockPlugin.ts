@@ -39,11 +39,14 @@ export function codeBlockPlugin(md: MarkdownIt, options?: { lineNumbers?: boolea
     if (showLineNumbers) {
       const lines = code.split('\n');
       const count = code.endsWith('\n') ? lines.length - 1 : lines.length;
+      const totalLines = Math.max(1, count);
+      const digits = String(totalLines).length;
       const spans: string[] = [];
-      for (let i = 1; i <= Math.max(1, count); i++) {
+      for (let i = 1; i <= totalLines; i++) {
         spans.push(`<span>${i}</span>`);
       }
-      lineNumbersHtml = `<div class="code-line-numbers" aria-hidden="true">${spans.join('')}</div>`;
+      const minWidthCh = Math.max(2, digits);
+      lineNumbersHtml = `<div class="code-line-numbers" style="min-width: ${minWidthCh}ch;" aria-hidden="true">${spans.join('')}</div>`;
     }
 
     const displayLang = (lang || validLang || 'code').toLowerCase();

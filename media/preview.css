@@ -544,14 +544,27 @@ body.vscode-dark .toc-drawer-body a.active {
 }
 
 .code-line-numbers {
-  padding: 12px 10px 12px 12px;
+  flex-shrink: 0;
+  padding: 12px 10px 12px 14px;
   border-right: 1px solid var(--ag-border-subtle);
   color: var(--ag-fg-subtle);
   user-select: none;
   text-align: right;
-  font-size: 12px;
+  font-family: var(--ag-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: nowrap;
+  box-sizing: content-box;
   display: flex;
   flex-direction: column;
+}
+
+.code-line-numbers span {
+  display: block;
+  white-space: nowrap;
+  line-height: 1.6;
+  height: 1.6em;
+  text-align: right;
 }
 
 .code-block-body pre {
@@ -562,6 +575,7 @@ body.vscode-dark .toc-drawer-body a.active {
   max-width: 100%;
   overflow-x: auto;
   box-sizing: border-box;
+  line-height: 1.6;
 }
 
 .code-block-body pre code {
@@ -569,7 +583,9 @@ body.vscode-dark .toc-drawer-body a.active {
   padding: 0 !important;
   font-family: inherit;
   font-size: inherit;
+  line-height: inherit;
   color: var(--ag-fg) !important;
+  white-space: pre;
 }
 
 /* Inline code */
