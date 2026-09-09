@@ -40,7 +40,7 @@ export class MarkdownPreviewPanel {
 
     const panel = vscode.window.createWebviewPanel(
       MarkdownPreviewPanel.viewType,
-      `Preview: ${getFileName(document.fileName)}`,
+      `Preview ${getFileName(document.fileName)}`,
       column,
       {
         enableScripts: true,
@@ -60,6 +60,11 @@ export class MarkdownPreviewPanel {
     this._panel = panel;
     this._extensionUri = extensionUri;
     this._document = document;
+
+    this._panel.iconPath = {
+      light: vscode.Uri.joinPath(extensionUri, 'media', 'preview-light.svg'),
+      dark: vscode.Uri.joinPath(extensionUri, 'media', 'preview-dark.svg')
+    };
 
     const config = vscode.workspace.getConfiguration('antigravity.markdownPreview');
     this._markdownEngine = new MarkdownEngine({
@@ -127,7 +132,7 @@ export class MarkdownPreviewPanel {
 
   public setDocument(doc: vscode.TextDocument): void {
     this._document = doc;
-    this._panel.title = `Preview: ${getFileName(doc.fileName)}`;
+    this._panel.title = `Preview ${getFileName(doc.fileName)}`;
     this.refresh();
   }
 
@@ -277,7 +282,7 @@ export class MarkdownPreviewPanel {
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} https: http: data: blob:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' ${webview.cspSource}; frame-src https: http:; font-src ${webview.cspSource} data:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Preview: ${escapeHtml(title)}</title>
+  <title>Preview ${escapeHtml(title)}</title>
   <link rel="stylesheet" href="${cssUri}">
 </head>
 <body class="antigravity-preview-body" data-initial-zoom="${savedZoom}">
