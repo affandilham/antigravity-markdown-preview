@@ -109,7 +109,8 @@ export function alertPlugin(md: MarkdownIt): void {
     if (token.meta && token.meta.isAlert) {
       const type = token.meta.alertType as AlertType;
       const config = ALERT_CONFIG[type] || ALERT_CONFIG.note;
-      return `<div class="antigravity-alert alert-${type}">
+      const lineAttr = token.map ? ` data-line="${token.map[0]}"` : '';
+      return `<div class="antigravity-alert alert-${type}"${lineAttr}>
   <div class="alert-header">
     <span class="alert-icon-wrapper">${config.icon}</span>
     <span class="alert-title">${config.label}</span>

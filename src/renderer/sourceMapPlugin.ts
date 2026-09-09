@@ -3,7 +3,7 @@ import MarkdownIt from 'markdown-it';
 export function sourceMapPlugin(md: MarkdownIt): void {
   function injectLineNumber(tokens: any[], idx: number) {
     const token = tokens[idx];
-    if (token.map && token.level === 0) {
+    if (token.map && (token.level === 0 || token.type === 'list_item_open')) {
       token.attrSet('data-line', String(token.map[0]));
     }
   }
@@ -13,8 +13,7 @@ export function sourceMapPlugin(md: MarkdownIt): void {
     'heading_open',
     'blockquote_open',
     'table_open',
-    'ordered_list_open',
-    'bullet_list_open',
+    'list_item_open',
     'hr'
   ];
 

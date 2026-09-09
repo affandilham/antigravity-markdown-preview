@@ -37,16 +37,19 @@
   }
 
   function getCurrentPreviewTopLine() {
-    if (!previewContentArea) return 0;
+    const root = markdownRoot || document.getElementById('markdownRoot');
+    if (!previewContentArea || !root) return 0;
     const containerRect = previewContentArea.getBoundingClientRect();
-    const elements = Array.from(document.querySelectorAll('[data-line]'));
+    const elements = Array.from(root.querySelectorAll('[data-line]'));
     if (elements.length === 0) return 0;
 
+    const zoom = currentZoom || 1.0;
     let detectedLine = 0;
     for (let i = 0; i < elements.length; i++) {
       const el = elements[i];
       const elRect = el.getBoundingClientRect();
-      if (elRect.top - containerRect.top <= 45) {
+      const relativeTop = (elRect.top - containerRect.top) / zoom;
+      if (relativeTop <= 45) {
         detectedLine = parseInt(el.getAttribute('data-line'), 10);
       } else {
         break;
@@ -153,6 +156,13 @@
         try { overlay.remove(); } catch (_) {}
       }, 300);
     }
+
+    // Re-verify alignment with editor once layout settles and skeleton overlay clears
+    if (isSyncEnabled && typeof lastEditorLine === 'number' && lastEditorLine >= 0) {
+      requestAnimationFrame(() => {
+        scrollToTargetLine(lastEditorLine, lastEditorPercentage);
+      });
+    }
   }
 
   // Mermaid render with safety and theme adaptation
@@ -231,7 +241,7 @@
       markProgrammaticScroll(600);
       const targetTop = getElementScrollTop(target);
       previewContentArea.scrollTo({
-        top: Math.max(0, targetTop - 20),
+        top: Math.max(0, targetTop - 40),
         behavior: 'smooth'
       });
     }
@@ -244,13 +254,14 @@
       });
     }
 
-    // 3. Synchronize Markdown editor to the exact heading line!
+    // 3. Synchronize Markdown editor to the exact heading line with cursor positioning!
     if (typeof line === 'number' && !isNaN(line)) {
       lastEditorLine = line;
       lastPreviewScrollTime = Date.now();
       vscode.postMessage({
         command: 'scrollEditorToLine',
-        line: line
+        line: line,
+        setSelection: true
       });
     }
   }
@@ -273,7 +284,7 @@
       a.textContent = h.text;
       a.dataset.targetId = h.id;
       if (typeof h.line === 'number') {
-        a.dataset.line = String(h.line);
+        a.dataset.tocLine = String(h.line);
       }
 
       a.addEventListener('click', (e) => {
@@ -297,7 +308,7 @@
       a.addEventListener('click', (e) => {
         e.preventDefault();
         const targetId = a.getAttribute('data-target-id') || (a.getAttribute('href') || '').replace(/^#/, '');
-        const lineAttr = a.getAttribute('data-line');
+        const lineAttr = a.getAttribute('data-toc-line') || a.getAttribute('data-line');
         const line = lineAttr !== null ? parseInt(lineAttr, 10) : undefined;
         navigateToHeading({ id: targetId, line: line });
       });
@@ -423,20 +434,22 @@
     if (!previewContentArea) return 0;
     const containerRect = previewContentArea.getBoundingClientRect();
     const elRect = el.getBoundingClientRect();
-    return previewContentArea.scrollTop + (elRect.top - containerRect.top);
+    const zoom = currentZoom || 1.0;
+    return previewContentArea.scrollTop + (elRect.top - containerRect.top) / zoom;
   }
 
   // Line-accurate Scroll Synchronization Engine (Editor -> Preview)
   function scrollToTargetLine(targetLine, fallbackPercentage) {
-    if (!previewContentArea) return;
-    markProgrammaticScroll();
+    const root = markdownRoot || document.getElementById('markdownRoot');
+    if (!previewContentArea || !root) return;
+    markProgrammaticScroll(250);
 
     if (targetLine <= 0) {
       previewContentArea.scrollTop = 0;
       return;
     }
 
-    const elements = Array.from(document.querySelectorAll('[data-line]'));
+    const elements = Array.from(root.querySelectorAll('[data-line]'));
     if (elements.length === 0) {
       if (typeof fallbackPercentage === 'number') {
         const maxScroll = previewContentArea.scrollHeight - previewContentArea.clientHeight;
@@ -460,12 +473,17 @@
     }
 
     if (!prevEl && nextEl) {
-      previewContentArea.scrollTop = Math.max(0, getElementScrollTop(nextEl) - 15);
+      previewContentArea.scrollTop = Math.max(0, getElementScrollTop(nextEl) - 40);
       return;
     }
 
     if (prevEl && !nextEl) {
-      previewContentArea.scrollTop = Math.max(0, getElementScrollTop(prevEl) - 15);
+      const maxScroll = previewContentArea.scrollHeight - previewContentArea.clientHeight;
+      if (typeof fallbackPercentage === 'number' && fallbackPercentage > 0.95) {
+        previewContentArea.scrollTop = maxScroll;
+      } else {
+        previewContentArea.scrollTop = Math.max(0, getElementScrollTop(prevEl) - 40);
+      }
       return;
     }
 
@@ -479,7 +497,7 @@
       const ratio = span > 0 ? (targetLine - prevLine) / span : 0;
       const targetY = prevTop + ratio * (nextTop - prevTop);
 
-      previewContentArea.scrollTop = Math.max(0, targetY - 15);
+      previewContentArea.scrollTop = Math.max(0, targetY - 40);
     }
   }
 
@@ -494,7 +512,7 @@
       }
       userScrollResetTimer = setTimeout(() => {
         isUserScrollingWebview = false;
-      }, 300);
+      }, 250);
     }
 
     previewContentArea.addEventListener('wheel', markUserScrolling, { passive: true });
@@ -506,12 +524,16 @@
         previewContentArea.scrollLeft = 0;
       }
 
-      if (!isProgrammaticScroll) {
-        lastScrollSource = 'preview';
-        lastPreviewScrollTime = Date.now();
+      if (isProgrammaticScroll) {
+        return;
       }
 
-      if (!isSyncEnabled || !isUserScrollingWebview) return;
+      // Any scroll that is not programmatic is user-driven (wheel, trackpad, scrollbar drag, keyboard)
+      markUserScrolling();
+      lastScrollSource = 'preview';
+      lastPreviewScrollTime = Date.now();
+
+      if (!isSyncEnabled) return;
 
       const now = Date.now();
       if (now - lastEditorScrollSendTime < 30) return;
@@ -521,7 +543,8 @@
 
       vscode.postMessage({
         command: 'scrollEditorToLine',
-        line: detectedLine
+        line: detectedLine,
+        setSelection: false
       });
     }, { passive: true });
   }

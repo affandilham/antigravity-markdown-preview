@@ -90,7 +90,11 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    if (MarkdownPreviewPanel.currentPanel && event.textEditor.document.languageId === 'markdown') {
+    if (
+      MarkdownPreviewPanel.currentPanel &&
+      event.textEditor.document.languageId === 'markdown' &&
+      event.textEditor.document.uri.toString() === MarkdownPreviewPanel.currentPanel.documentUri.toString()
+    ) {
       const config = vscode.workspace.getConfiguration('antigravity.markdownPreview');
       if (!config.get<boolean>('scrollSync', true)) return;
 
