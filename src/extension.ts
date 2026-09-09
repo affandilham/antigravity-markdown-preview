@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { MarkdownPreviewPanel } from './previewPanel';
 
 export function activate(context: vscode.ExtensionContext) {
+  MarkdownPreviewPanel.setContext(context);
   // Command: Open Preview to the Side
   const openToSideCommand = vscode.commands.registerCommand(
     'antigravity.markdownPreview.openToSide',

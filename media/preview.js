@@ -4,7 +4,13 @@
   let isSyncEnabled = true;
   let isTocOpen = false;
   let mermaidInitialized = false;
-  let currentZoom = 1.0;
+  const bodyEl = document.body;
+  const initialZoomAttr = bodyEl ? bodyEl.getAttribute('data-initial-zoom') : null;
+  const persistedState = vscode.getState() || {};
+  let currentZoom = persistedState.zoom || (initialZoomAttr ? parseFloat(initialZoomAttr) : 1.0);
+  if (isNaN(currentZoom) || currentZoom <= 0) {
+    currentZoom = 1.0;
+  }
 
   // Bidirectional scroll sync flags
   let isUserScrollingWebview = false;
@@ -44,6 +50,15 @@
     if (previewContentArea) {
       previewContentArea.scrollLeft = 0;
     }
+
+    try {
+      vscode.setState({ ...vscode.getState(), zoom: currentZoom });
+    } catch (_) {}
+
+    vscode.postMessage({
+      command: 'saveZoomLevel',
+      zoom: currentZoom
+    });
   }
 
   function zoomIn() {
@@ -467,6 +482,14 @@
   btnZoomIn?.addEventListener('click', zoomIn);
   btnZoomOut?.addEventListener('click', zoomOut);
   btnZoomReset?.addEventListener('click', zoomReset);
+
+  // Apply initial zoom
+  if (markdownRoot && currentZoom !== 1.0) {
+    markdownRoot.style.zoom = String(currentZoom);
+  }
+  if (zoomLevelEl) {
+    zoomLevelEl.textContent = `${Math.round(currentZoom * 100)}%`;
+  }
 
   // Initial setup
   bindInteractions();

@@ -6,6 +6,19 @@ export class MarkdownPreviewPanel {
   public static currentPanel: MarkdownPreviewPanel | undefined;
   public static readonly viewType = 'antigravity.markdownPreview';
   public static isSyncingFromWebview = false;
+  private static _context: vscode.ExtensionContext | undefined;
+
+  public static setContext(context: vscode.ExtensionContext): void {
+    MarkdownPreviewPanel._context = context;
+  }
+
+  public static saveZoomLevel(zoom: number): void {
+    MarkdownPreviewPanel._context?.globalState.update('antigravity.markdownPreview.zoomLevel', zoom);
+  }
+
+  public static getZoomLevel(): number {
+    return MarkdownPreviewPanel._context?.globalState.get<number>('antigravity.markdownPreview.zoomLevel') ?? 1.0;
+  }
 
   private readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
@@ -87,6 +100,11 @@ export class MarkdownPreviewPanel {
           case 'openExternal':
             if (message.url) {
               await vscode.env.openExternal(vscode.Uri.parse(message.url));
+            }
+            break;
+          case 'saveZoomLevel':
+            if (typeof message.zoom === 'number') {
+              MarkdownPreviewPanel.saveZoomLevel(message.zoom);
             }
             break;
         }
@@ -230,6 +248,8 @@ export class MarkdownPreviewPanel {
     const mermaidUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaUri, 'vendor', 'mermaid.min.js'));
 
     const nonce = getNonce();
+    const savedZoom = MarkdownPreviewPanel.getZoomLevel();
+    const zoomPercent = Math.round(savedZoom * 100);
 
     let initialTocHtml = '<p class="toc-empty">No headings found.</p>';
     if (headings && headings.length > 0) {
@@ -249,7 +269,7 @@ export class MarkdownPreviewPanel {
   <title>Preview: ${escapeHtml(title)}</title>
   <link rel="stylesheet" href="${cssUri}">
 </head>
-<body class="antigravity-preview-body">
+<body class="antigravity-preview-body" data-initial-zoom="${savedZoom}">
   <header class="preview-toolbar" id="previewToolbar">
     <div class="toolbar-left">
       <button class="toolbar-btn" id="btnToggleToc" title="Toggle Outline" type="button">
@@ -289,7 +309,7 @@ export class MarkdownPreviewPanel {
           </svg>
         </button>
         <button class="zoom-indicator-btn" id="btnZoomReset" title="Reset Zoom (Cmd 0)" type="button">
-          <span id="zoomLevel">100%</span>
+          <span id="zoomLevel">${zoomPercent}%</span>
         </button>
         <button class="toolbar-btn icon-only" id="btnZoomIn" title="Zoom In (Cmd +)" type="button">
           <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
@@ -312,7 +332,7 @@ export class MarkdownPreviewPanel {
     </aside>
 
     <main class="preview-content-area" id="previewContentArea">
-      <article class="antigravity-markdown-root" id="markdownRoot">
+      <article class="antigravity-markdown-root" id="markdownRoot" style="zoom: ${savedZoom};">
         ${initialHtml}
       </article>
     </main>
