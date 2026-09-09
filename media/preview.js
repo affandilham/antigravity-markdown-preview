@@ -2,7 +2,7 @@
   const vscode = acquireVsCodeApi();
 
   let isSyncEnabled = true;
-  let isTocOpen = false; // Closed by default for clean uncluttered view
+  let isTocOpen = false;
   let mermaidInitialized = false;
 
   const markdownRoot = document.getElementById('markdownRoot');
@@ -18,7 +18,12 @@
   const btnExportHtml = document.getElementById('btnExportHtml');
   const btnPrint = document.getElementById('btnPrint');
 
-  // Mermaid render with safety
+  function isDarkMode() {
+    return document.body.classList.contains('vscode-dark') || 
+           (!document.body.classList.contains('vscode-light') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+
+  // Mermaid render with safety and theme adaptation
   function renderMermaidDiagrams() {
     const mermaidNodes = document.querySelectorAll('.mermaid:not([data-processed="true"])');
     if (!mermaidNodes || mermaidNodes.length === 0) return;
@@ -28,12 +33,14 @@
       return;
     }
 
+    const dark = isDarkMode();
+
     try {
       if (!mermaidInitialized) {
         window.mermaid.initialize({
           startOnLoad: false,
-          theme: 'dark',
-          themeVariables: {
+          theme: dark ? 'dark' : 'default',
+          themeVariables: dark ? {
             darkMode: true,
             background: '#161b22',
             primaryColor: '#2f81f7',
@@ -42,6 +49,15 @@
             lineColor: '#8b949e',
             secondaryColor: '#21262d',
             tertiaryColor: '#161b22'
+          } : {
+            darkMode: false,
+            background: '#ffffff',
+            primaryColor: '#0969da',
+            primaryTextColor: '#1f2328',
+            primaryBorderColor: '#d0d7de',
+            lineColor: '#57606a',
+            secondaryColor: '#f6f8fa',
+            tertiaryColor: '#ffffff'
           },
           securityLevel: 'loose'
         });
