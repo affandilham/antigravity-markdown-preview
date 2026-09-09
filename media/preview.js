@@ -361,7 +361,112 @@
       });
     });
 
-    // 3. Save SVG for Mermaid
+  // Helper to convert SVG element to high-res PNG data URL with theme-adaptive background
+  function convertSvgToPngDataUrl(svgElement, callback) {
+    try {
+      const clonedSvg = svgElement.cloneNode(true);
+      const bbox = svgElement.getBBox ? svgElement.getBBox() : null;
+      const rect = svgElement.getBoundingClientRect();
+      const width = Math.max(100, Math.round(svgElement.viewBox?.baseVal?.width || (bbox && bbox.width) || rect.width || 800));
+      const height = Math.max(80, Math.round(svgElement.viewBox?.baseVal?.height || (bbox && bbox.height) || rect.height || 600));
+
+      clonedSvg.setAttribute('width', String(width));
+      clonedSvg.setAttribute('height', String(height));
+      if (!clonedSvg.getAttribute('viewBox')) {
+        clonedSvg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      }
+
+      // Add background rect matching active theme so PNG is clean and legible
+      const dark = isDarkMode();
+      const bgColor = dark ? '#0d1117' : '#ffffff';
+      const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bgRect.setAttribute('x', '0');
+      bgRect.setAttribute('y', '0');
+      bgRect.setAttribute('width', '100%');
+      bgRect.setAttribute('height', '100%');
+      bgRect.setAttribute('fill', bgColor);
+      clonedSvg.insertBefore(bgRect, clonedSvg.firstChild);
+
+      const svgString = new XMLSerializer().serializeToString(clonedSvg);
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const svgUrl = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+      const scale = 2; // Crisp 2x retina resolution
+
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = width * scale;
+          canvas.height = height * scale;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.scale(scale, scale);
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/png');
+            URL.revokeObjectURL(svgUrl);
+            callback(null, dataUrl, svgString);
+          } else {
+            URL.revokeObjectURL(svgUrl);
+            callback(new Error('Canvas context not available'));
+          }
+        } catch (canvasErr) {
+          URL.revokeObjectURL(svgUrl);
+          callback(canvasErr);
+        }
+      };
+
+      img.onerror = (imgErr) => {
+        URL.revokeObjectURL(svgUrl);
+        callback(imgErr || new Error('Image load failed'));
+      };
+
+      img.src = svgUrl;
+    } catch (err) {
+      callback(err);
+    }
+  }
+
+    // 3. Save PNG for Mermaid
+    document.querySelectorAll('.export-png-btn').forEach((btn) => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = 'true';
+
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-target');
+        const container = document.getElementById(targetId);
+        if (!container) return;
+        const svg = container.querySelector('svg');
+        if (!svg) return;
+
+        const originalText = btn.textContent;
+        btn.textContent = 'Saving...';
+        btn.disabled = true;
+
+        convertSvgToPngDataUrl(svg, (err, dataUrl) => {
+          btn.disabled = false;
+          if (err || !dataUrl) {
+            console.error('Save PNG error:', err);
+            btn.textContent = 'Error';
+            setTimeout(() => { btn.textContent = originalText; }, 2000);
+            return;
+          }
+
+          btn.textContent = 'Saved!';
+          setTimeout(() => { btn.textContent = originalText; }, 1500);
+
+          vscode.postMessage({
+            command: 'saveImage',
+            data: dataUrl,
+            defaultName: `${targetId}.png`
+          });
+        });
+      });
+    });
+
+    // 4. Save SVG for Mermaid
     document.querySelectorAll('.export-svg-btn').forEach((btn) => {
       if (btn.dataset.bound) return;
       btn.dataset.bound = 'true';
@@ -373,15 +478,62 @@
           const svg = container.querySelector('svg');
           if (svg) {
             const svgData = new XMLSerializer().serializeToString(svg);
-            const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${targetId}.svg`;
-            a.click();
-            URL.revokeObjectURL(url);
+            vscode.postMessage({
+              command: 'saveSvg',
+              svg: svgData,
+              defaultName: `${targetId}.svg`
+            });
+            const orig = btn.textContent;
+            btn.textContent = 'Saved!';
+            setTimeout(() => { btn.textContent = orig; }, 1500);
           }
         }
+      });
+    });
+
+    // 5. Save PNG for PlantUML
+    document.querySelectorAll('.export-puml-png-btn').forEach((btn) => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = 'true';
+
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-target');
+        const img = document.getElementById(targetId);
+        if (!img) return;
+
+        const originalText = btn.textContent;
+        btn.textContent = 'Saving...';
+        btn.disabled = true;
+
+        const svgSrc = img.getAttribute('src') || '';
+        const pngSrc = svgSrc.replace('/plantuml/svg/', '/plantuml/png/');
+
+        const pumlImg = new Image();
+        pumlImg.crossOrigin = 'anonymous';
+        pumlImg.onload = () => {
+          btn.disabled = false;
+          const canvas = document.createElement('canvas');
+          canvas.width = pumlImg.naturalWidth || 800;
+          canvas.height = pumlImg.naturalHeight || 600;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(pumlImg, 0, 0);
+            const dataUrl = canvas.toDataURL('image/png');
+            vscode.postMessage({
+              command: 'saveImage',
+              data: dataUrl,
+              defaultName: `${targetId}.png`
+            });
+            btn.textContent = 'Saved!';
+            setTimeout(() => { btn.textContent = originalText; }, 1500);
+          }
+        };
+        pumlImg.onerror = () => {
+          btn.disabled = false;
+          vscode.postMessage({ command: 'openExternal', url: pngSrc });
+          btn.textContent = originalText;
+        };
+        pumlImg.src = pngSrc;
       });
     });
 

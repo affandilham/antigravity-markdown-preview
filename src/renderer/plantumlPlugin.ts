@@ -29,6 +29,9 @@ export function plantumlPlugin(md: MarkdownIt, options?: { serverUrl?: string })
       <button class="diagram-btn copy-diagram-code-btn" data-code="${encodedCode}" title="Copy PlantUML Source" type="button">
         Copy
       </button>
+      <button class="diagram-btn export-puml-png-btn" data-target="${diagramId}" title="Save as PNG Image" type="button">
+        Save PNG
+      </button>
       <a class="diagram-btn open-url-btn" href="${svgUrl}" target="_blank" title="Open Full SVG" rel="noopener noreferrer">
         Open SVG
       </a>

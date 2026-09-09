@@ -106,6 +106,16 @@ export class MarkdownPreviewPanel {
           case 'exportHtml':
             await this.exportStandaloneHtml();
             break;
+          case 'saveImage':
+            if (message.data) {
+              await this.saveImageFile(message.data, message.defaultName);
+            }
+            break;
+          case 'saveSvg':
+            if (message.svg) {
+              await this.saveSvgFile(message.svg, message.defaultName);
+            }
+            break;
           case 'openExternal':
             if (message.url) {
               await vscode.env.openExternal(vscode.Uri.parse(message.url));
@@ -196,6 +206,53 @@ export class MarkdownPreviewPanel {
     this._syncLockTimeout = setTimeout(() => {
       MarkdownPreviewPanel.isSyncingFromWebview = false;
     }, 120);
+  }
+
+  public async saveImageFile(dataUrl: string, defaultName: string = 'diagram.png'): Promise<void> {
+    try {
+      const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(this._document.uri);
+      const defaultUri = vscode.Uri.joinPath(
+        workspaceFolder?.uri || vscode.workspace.workspaceFolders?.[0]?.uri || vscode.Uri.file('/tmp'),
+        defaultName
+      );
+
+      const targetUri = await vscode.window.showSaveDialog({
+        defaultUri,
+        filters: { 'PNG Image': ['png'] }
+      });
+
+      if (targetUri) {
+        await vscode.workspace.fs.writeFile(targetUri, buffer);
+        vscode.window.showInformationMessage(`Saved diagram to ${getFileName(targetUri.fsPath)}`);
+      }
+    } catch (err: any) {
+      vscode.window.showErrorMessage(`Failed to save diagram image: ${err?.message || err}`);
+    }
+  }
+
+  public async saveSvgFile(svgString: string, defaultName: string = 'diagram.svg'): Promise<void> {
+    try {
+      const buffer = Buffer.from(svgString, 'utf8');
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(this._document.uri);
+      const defaultUri = vscode.Uri.joinPath(
+        workspaceFolder?.uri || vscode.workspace.workspaceFolders?.[0]?.uri || vscode.Uri.file('/tmp'),
+        defaultName
+      );
+
+      const targetUri = await vscode.window.showSaveDialog({
+        defaultUri,
+        filters: { 'SVG Vector Image': ['svg'] }
+      });
+
+      if (targetUri) {
+        await vscode.workspace.fs.writeFile(targetUri, buffer);
+        vscode.window.showInformationMessage(`Saved diagram to ${getFileName(targetUri.fsPath)}`);
+      }
+    } catch (err: any) {
+      vscode.window.showErrorMessage(`Failed to save SVG diagram: ${err?.message || err}`);
+    }
   }
 
   public async exportStandaloneHtml(): Promise<void> {

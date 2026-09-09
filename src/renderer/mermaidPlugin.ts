@@ -26,6 +26,9 @@ export function mermaidPlugin(md: MarkdownIt): void {
       <button class="diagram-btn copy-diagram-code-btn" data-code="${encoded}" title="Copy Mermaid Definition" type="button">
         Copy
       </button>
+      <button class="diagram-btn export-png-btn" data-target="${diagramId}" title="Save as High-Res PNG Image" type="button">
+        Save PNG
+      </button>
       <button class="diagram-btn export-svg-btn" data-target="${diagramId}" title="Download Diagram SVG" type="button">
         Save SVG
       </button>
