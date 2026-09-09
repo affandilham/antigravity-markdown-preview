@@ -69,10 +69,13 @@ body.vscode-dark {
 html {
   margin: 0;
   padding: 0;
+  height: 100%;
   width: 100%;
   max-width: 100%;
+  overflow: hidden !important;
   overflow-x: hidden !important;
-  overscroll-behavior-x: none;
+  overflow-y: hidden !important;
+  overscroll-behavior: none;
 }
 
 body.antigravity-preview-body {
@@ -83,12 +86,14 @@ body.antigravity-preview-body {
   font-family: var(--ag-font);
   font-size: 14.5px;
   line-height: 1.65;
+  height: 100%;
   height: 100vh;
   width: 100%;
   max-width: 100%;
-  overflow: hidden;
+  overflow: hidden !important;
   overflow-x: hidden !important;
-  overscroll-behavior-x: none;
+  overflow-y: hidden !important;
+  overscroll-behavior: none;
   display: flex;
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
@@ -99,6 +104,7 @@ body.antigravity-preview-body {
    ========================================================================== */
 
 .preview-toolbar {
+  margin: 0;
   height: 38px;
   min-height: 38px;
   max-height: 38px;
@@ -111,21 +117,19 @@ body.antigravity-preview-body {
   box-sizing: border-box;
   flex: 0 0 38px;
   z-index: 10;
+  margin-top: 0;
   /* Smooth, gentle, and relaxed reveal transition when scrolling up */
   transition: margin-top 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
               opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: margin-top, transform, opacity;
+  will-change: margin-top, opacity;
 }
 
 .preview-toolbar.toolbar-hidden {
   margin-top: -38px;
-  transform: translateY(-100%);
   opacity: 0;
   pointer-events: none;
   /* Perfectly harmonized smooth & gentle transition matching the reveal */
   transition: margin-top 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
               opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -133,7 +137,7 @@ body.antigravity-preview-body {
 .toolbar-right {
   display: flex;
   align-items: center;
-  height: 100%;
+  height: 26px;
   gap: 6px;
 }
 

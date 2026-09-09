@@ -569,6 +569,7 @@
       if (!isToolbarHidden) return;
       isToolbarHidden = false;
       previewToolbar.classList.remove('toolbar-hidden');
+      lockRootScroll();
     }
 
     // Scroll listener on the content area
@@ -792,12 +793,24 @@
     dismissLoading();
   }, 350);
 
-  // Hard lock horizontal window scrolling
-  window.addEventListener('scroll', () => {
-    if (window.scrollX !== 0) {
-      window.scrollTo(0, window.scrollY);
+  // Hard lock root window and document scrolling to (0, 0)
+  function lockRootScroll() {
+    if (window.scrollX !== 0 || window.scrollY !== 0) {
+      window.scrollTo(0, 0);
     }
-  });
+    if (document.documentElement && (document.documentElement.scrollLeft !== 0 || document.documentElement.scrollTop !== 0)) {
+      document.documentElement.scrollLeft = 0;
+      document.documentElement.scrollTop = 0;
+    }
+    if (document.body && (document.body.scrollLeft !== 0 || document.body.scrollTop !== 0)) {
+      document.body.scrollLeft = 0;
+      document.body.scrollTop = 0;
+    }
+  }
+
+  window.addEventListener('scroll', lockRootScroll, { passive: true });
+  document.addEventListener('scroll', lockRootScroll, { passive: true });
+  lockRootScroll();
 
   // Notify extension that webview is ready
   vscode.postMessage({ command: 'ready' });
