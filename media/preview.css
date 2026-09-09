@@ -829,3 +829,55 @@ tr:hover td {
     padding: 0 !important;
   }
 }
+
+/* ==========================================================================
+   Zoom Controls Styling
+   ========================================================================== */
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--ag-border);
+  border-radius: 4px;
+  background-color: var(--ag-surface);
+  margin-left: 4px;
+  overflow: hidden;
+}
+
+.zoom-controls .toolbar-btn {
+  border: none;
+  border-radius: 0;
+  padding: 4px 6px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoom-controls .toolbar-btn:hover {
+  background-color: var(--ag-surface-hover);
+}
+
+.zoom-indicator-btn {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--ag-border-subtle);
+  border-right: 1px solid var(--ag-border-subtle);
+  color: var(--ag-fg-muted);
+  font-family: var(--ag-mono);
+  font-size: 11px;
+  padding: 0 6px;
+  height: 26px;
+  min-width: 44px;
+  text-align: center;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.zoom-indicator-btn:hover {
+  color: var(--ag-fg);
+  background-color: var(--ag-surface-hover);
+}

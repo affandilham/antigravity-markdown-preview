@@ -4,6 +4,7 @@
   let isSyncEnabled = true;
   let isTocOpen = false;
   let mermaidInitialized = false;
+  let currentZoom = 1.0;
 
   // Bidirectional scroll sync flags
   let isUserScrollingWebview = false;
@@ -21,10 +22,66 @@
   const btnExportHtml = document.getElementById('btnExportHtml');
   const btnPrint = document.getElementById('btnPrint');
 
+  const btnZoomIn = document.getElementById('btnZoomIn');
+  const btnZoomOut = document.getElementById('btnZoomOut');
+  const btnZoomReset = document.getElementById('btnZoomReset');
+  const zoomLevelEl = document.getElementById('zoomLevel');
+
   function isDarkMode() {
     return document.body.classList.contains('vscode-dark') || 
            (!document.body.classList.contains('vscode-light') && window.matchMedia('(prefers-color-scheme: dark)').matches);
   }
+
+  // Zoom Engine
+  function applyZoom(zoomVal) {
+    currentZoom = Math.min(2.0, Math.max(0.5, Math.round(zoomVal * 10) / 10));
+    if (markdownRoot) {
+      markdownRoot.style.zoom = String(currentZoom);
+    }
+    if (zoomLevelEl) {
+      zoomLevelEl.textContent = `${Math.round(currentZoom * 100)}%`;
+    }
+  }
+
+  function zoomIn() {
+    applyZoom(currentZoom + 0.1);
+  }
+
+  function zoomOut() {
+    applyZoom(currentZoom - 0.1);
+  }
+
+  function zoomReset() {
+    applyZoom(1.0);
+  }
+
+  // Keyboard Shortcuts (Cmd/Ctrl + '=', '-', '0') and Cmd + Wheel
+  window.addEventListener('keydown', (e) => {
+    const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+    if (!isCmdOrCtrl) return;
+
+    if (e.key === '=' || e.key === '+') {
+      e.preventDefault();
+      zoomIn();
+    } else if (e.key === '-' || e.key === '_') {
+      e.preventDefault();
+      zoomOut();
+    } else if (e.key === '0') {
+      e.preventDefault();
+      zoomReset();
+    }
+  });
+
+  previewContentArea?.addEventListener('wheel', (e) => {
+    if (e.metaKey || e.ctrlKey) {
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        zoomIn();
+      } else if (e.deltaY > 0) {
+        zoomOut();
+      }
+    }
+  }, { passive: false });
 
   // Mermaid render with safety and theme adaptation
   function renderMermaidDiagrams() {
@@ -398,6 +455,11 @@
   btnPrint?.addEventListener('click', () => {
     window.print();
   });
+
+  // Zoom Controls Event Listeners
+  btnZoomIn?.addEventListener('click', zoomIn);
+  btnZoomOut?.addEventListener('click', zoomOut);
+  btnZoomReset?.addEventListener('click', zoomReset);
 
   // Initial setup
   bindInteractions();

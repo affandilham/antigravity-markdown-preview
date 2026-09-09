@@ -252,7 +252,7 @@ export class MarkdownPreviewPanel {
 <body class="antigravity-preview-body">
   <header class="preview-toolbar" id="previewToolbar">
     <div class="toolbar-left">
-      <button class="toolbar-btn" id="btnToggleToc" title="Toggle Table of Contents" type="button">
+      <button class="toolbar-btn" id="btnToggleToc" title="Toggle Outline" type="button">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
           <path d="M2 3.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm0 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 4a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/>
         </svg>
@@ -280,6 +280,23 @@ export class MarkdownPreviewPanel {
           <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zm1 2h4v2H6V3zm6 9v2H4v-2h8z"/>
         </svg>
       </button>
+
+      <!-- Zoom Controls di sebelah icon Print -->
+      <div class="zoom-controls">
+        <button class="toolbar-btn icon-only" id="btnZoomOut" title="Zoom Out (Cmd -)" type="button">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2 7.75A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.75z"/>
+          </svg>
+        </button>
+        <button class="zoom-indicator-btn" id="btnZoomReset" title="Reset Zoom (Cmd 0)" type="button">
+          <span id="zoomLevel">100%</span>
+        </button>
+        <button class="toolbar-btn icon-only" id="btnZoomIn" title="Zoom In (Cmd +)" type="button">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2z"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -324,6 +341,12 @@ export class MarkdownPreviewPanel {
 function getFileName(filePath: string): string {
   const parts = filePath.split(/[\\\/]/);
   return parts[parts.length - 1] || 'Document';
+}
+
+function computeStats(markdown: string): string {
+  const words = markdown.trim().split(/\s+/).filter(Boolean).length;
+  const readMinutes = Math.max(1, Math.ceil(words / 200));
+  return `${words} words · ${readMinutes} min read`;
 }
 
 function escapeHtml(str: string): string {
