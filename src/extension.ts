@@ -59,20 +59,26 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
-  // Event: Editor scroll -> sync with webview
+  // Event: Editor scroll -> throttled sync with webview (35ms ~ 30fps)
+  let scrollThrottleTimer: NodeJS.Timeout | undefined;
   const scrollSub = vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
     if (MarkdownPreviewPanel.currentPanel && event.textEditor.document.languageId === 'markdown') {
       const config = vscode.workspace.getConfiguration('antigravity.markdownPreview');
       const isSyncEnabled = config.get<boolean>('scrollSync', true);
       if (!isSyncEnabled) return;
 
-      const ranges = event.visibleRanges;
-      if (ranges.length > 0) {
-        const topVisibleLine = ranges[0].start.line;
-        const totalLines = event.textEditor.document.lineCount;
-        const percentage = totalLines > 1 ? topVisibleLine / (totalLines - 1) : 0;
-        MarkdownPreviewPanel.currentPanel.syncScroll(percentage);
+      if (scrollThrottleTimer) {
+        clearTimeout(scrollThrottleTimer);
       }
+      scrollThrottleTimer = setTimeout(() => {
+        const ranges = event.visibleRanges;
+        if (ranges.length > 0) {
+          const topVisibleLine = ranges[0].start.line;
+          const totalLines = event.textEditor.document.lineCount;
+          const percentage = totalLines > 1 ? topVisibleLine / (totalLines - 1) : 0;
+          MarkdownPreviewPanel.currentPanel?.syncScroll(percentage);
+        }
+      }, 35);
     }
   });
 

@@ -12,6 +12,7 @@ export class MarkdownPreviewPanel {
   private _disposables: vscode.Disposable[] = [];
   private _markdownEngine: MarkdownEngine;
   private _updateTimeout: NodeJS.Timeout | undefined;
+  private _isWebviewReady = false;
 
   public static createOrShow(extensionUri: vscode.Uri, document: vscode.TextDocument, viewColumn?: vscode.ViewColumn): MarkdownPreviewPanel {
     const column = viewColumn || vscode.ViewColumn.Beside;
@@ -19,7 +20,7 @@ export class MarkdownPreviewPanel {
     if (MarkdownPreviewPanel.currentPanel) {
       MarkdownPreviewPanel.currentPanel._document = document;
       MarkdownPreviewPanel.currentPanel._panel.reveal(column);
-      MarkdownPreviewPanel.currentPanel.updateContent();
+      MarkdownPreviewPanel.currentPanel.refresh();
       return MarkdownPreviewPanel.currentPanel;
     }
 
@@ -52,17 +53,21 @@ export class MarkdownPreviewPanel {
       codeLineNumbers: config.get<boolean>('codeLineNumbers', true)
     });
 
-    this._panel.webview.html = this._getHtmlForWebview();
+    // Render initial content directly into HTML so there is zero initial delay
+    this.refresh();
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
     this._panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case 'ready':
+            this._isWebviewReady = true;
+            break;
           case 'copyText':
             if (message.text) {
               await vscode.env.clipboard.writeText(message.text);
-              vscode.window.setStatusBarMessage('$(check) Copied to clipboard!', 2500);
+              vscode.window.setStatusBarMessage('$(check) Copied to clipboard', 2000);
             }
             break;
           case 'exportHtml':
@@ -73,23 +78,31 @@ export class MarkdownPreviewPanel {
               await vscode.env.openExternal(vscode.Uri.parse(message.url));
             }
             break;
-          case 'log':
-            console.log('[Markdown Preview]:', message.data);
-            break;
         }
       },
       null,
       this._disposables
     );
-
-    // Initial render
-    this.updateContent();
   }
 
   public setDocument(doc: vscode.TextDocument): void {
     this._document = doc;
     this._panel.title = `Preview: ${getFileName(doc.fileName)}`;
-    this.updateContent();
+    this.refresh();
+  }
+
+  public refresh(): void {
+    const text = this._document.getText();
+    const { html, headings } = this._markdownEngine.render(text);
+    const stats = computeStats(text);
+    const title = getFileName(this._document.fileName);
+
+    if (!this._isWebviewReady) {
+      // Direct render on first load
+      this._panel.webview.html = this._getHtmlForWebview(html, headings, stats, title);
+    } else {
+      this.updateContent();
+    }
   }
 
   public updateContent(): void {
@@ -108,10 +121,11 @@ export class MarkdownPreviewPanel {
         stats,
         title: getFileName(this._document.fileName)
       });
-    }, 150);
+    }, 200);
   }
 
   public syncScroll(topPercentage: number): void {
+    if (!this._isWebviewReady) return;
     this._panel.webview.postMessage({
       command: 'syncScroll',
       percentage: topPercentage
@@ -144,27 +158,27 @@ export class MarkdownPreviewPanel {
   <title>${escapeHtml(title)}</title>
   <style>
     :root {
-      --bg: #0d1117;
-      --fg: #e6edf3;
-      --card-bg: #161b22;
-      --border: #30363d;
-      --accent: #38bdf8;
+      --bg: #0e1116;
+      --fg: #d1d7e0;
+      --border: #21262d;
+      --accent: #58a6ff;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      line-height: 1.6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.65;
       color: var(--fg);
       background-color: var(--bg);
-      max-width: 900px;
+      max-width: 860px;
       margin: 0 auto;
-      padding: 40px 20px;
+      padding: 48px 24px;
     }
-    pre code { background: #161b22; padding: 12px; border-radius: 8px; display: block; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    h1, h2, h3, h4 { color: #f0f6fc; }
+    pre code { background: #161b22; padding: 14px; border-radius: 6px; display: block; overflow-x: auto; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13.5px; }
     th, td { border: 1px solid var(--border); padding: 8px 12px; }
-    th { background: #21262d; }
-    blockquote { border-left: 4px solid var(--accent); margin: 16px 0; padding: 8px 16px; background: rgba(56, 189, 248, 0.05); }
-    img { max-width: 100%; border-radius: 8px; }
+    th { background: #161b22; color: #f0f6fc; }
+    blockquote { border-left: 3px solid var(--accent); margin: 16px 0; padding: 4px 16px; color: #8b949e; }
+    img { max-width: 100%; border-radius: 6px; }
   </style>
 </head>
 <body>
@@ -175,10 +189,10 @@ export class MarkdownPreviewPanel {
 </html>`;
 
     await vscode.workspace.fs.writeFile(targetUri, Buffer.from(fullHtml, 'utf8'));
-    vscode.window.showInformationMessage(`Exported Markdown Preview to ${targetUri.fsPath}`);
+    vscode.window.showInformationMessage(`Exported Markdown to ${targetUri.fsPath}`);
   }
 
-  private _getHtmlForWebview(): string {
+  private _getHtmlForWebview(initialHtml: string, headings: TocItem[], stats: string, title: string): string {
     const webview = this._panel.webview;
     const mediaUri = vscode.Uri.joinPath(this._extensionUri, 'media');
 
@@ -187,6 +201,17 @@ export class MarkdownPreviewPanel {
     const mermaidUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaUri, 'vendor', 'mermaid.min.js'));
 
     const nonce = getNonce();
+    const hasMermaid = initialHtml.includes('class="mermaid"');
+
+    // Build initial TOC HTML
+    let initialTocHtml = '<p class="toc-empty">No headings found.</p>';
+    if (headings && headings.length > 0) {
+      initialTocHtml = '<ul>';
+      for (const h of headings) {
+        initialTocHtml += `<li class="toc-item-${Math.min(4, h.level)}"><a href="#${h.id}" data-target-id="${h.id}">${escapeHtml(h.text)}</a></li>`;
+      }
+      initialTocHtml += '</ul>';
+    }
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -194,21 +219,21 @@ export class MarkdownPreviewPanel {
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} https: http: data: blob:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' ${webview.cspSource}; frame-src https: http:; font-src ${webview.cspSource} data:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Antigravity Markdown Preview</title>
+  <title>Preview: ${escapeHtml(title)}</title>
   <link rel="stylesheet" href="${cssUri}">
 </head>
 <body class="antigravity-preview-body">
-  <!-- Top Glass Toolbar -->
+  <!-- Minimalist Professional Toolbar -->
   <header class="preview-toolbar" id="previewToolbar">
     <div class="toolbar-left">
-      <button class="toolbar-btn active-state" id="btnToggleToc" title="Toggle Table of Contents (TOC)" type="button">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+      <button class="toolbar-btn" id="btnToggleToc" title="Toggle Table of Contents" type="button">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
           <path d="M2 3.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm0 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 4a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/>
         </svg>
-        <span>TOC</span>
+        <span>Outline</span>
       </button>
-      <button class="toolbar-btn active-state" id="btnToggleSync" title="Toggle Scroll Sync with Editor" type="button">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+      <button class="toolbar-btn active-state" id="btnToggleSync" title="Sync Scroll with Editor" type="button">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
           <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-7.068 2H.534a.25.25 0 0 1-.192-.41l1.966-2.36a.25.25 0 0 1 .384 0l1.966 2.36a.25.25 0 0 1-.192.41z"/>
         </svg>
         <span>Sync</span>
@@ -216,26 +241,20 @@ export class MarkdownPreviewPanel {
     </div>
 
     <div class="toolbar-center">
-      <span class="preview-doc-title" id="docTitle">Loading...</span>
-      <span class="doc-badge" id="docStats">0 words</span>
+      <span class="preview-doc-title" id="docTitle">${escapeHtml(title)}</span>
+      <span class="doc-badge" id="docStats">${escapeHtml(stats)}</span>
     </div>
 
     <div class="toolbar-right">
-      <div class="zoom-controls">
-        <button class="toolbar-btn icon-only" id="btnZoomOut" title="Zoom Out" type="button">−</button>
-        <span class="zoom-level" id="zoomLevel">100%</span>
-        <button class="toolbar-btn icon-only" id="btnZoomIn" title="Zoom In" type="button">+</button>
-        <button class="toolbar-btn icon-only" id="btnZoomReset" title="Reset Zoom" type="button">↺</button>
-      </div>
-      <button class="toolbar-btn" id="btnExportHtml" title="Export to Standalone HTML" type="button">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+      <button class="toolbar-btn" id="btnExportHtml" title="Export HTML" type="button">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
           <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
           <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
         </svg>
         <span>Export</span>
       </button>
-      <button class="toolbar-btn icon-only" id="btnPrint" title="Print or Save as PDF" type="button">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+      <button class="toolbar-btn icon-only" id="btnPrint" title="Print" type="button">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
           <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
           <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zm1 2h4v2H6V3zm6 9v2H4v-2h8z"/>
         </svg>
@@ -243,32 +262,27 @@ export class MarkdownPreviewPanel {
     </div>
   </header>
 
-  <!-- Main Workspace -->
+  <!-- Content & Outline Layout -->
   <div class="preview-layout" id="previewLayout">
-    <!-- Sidebar / Drawer TOC -->
-    <aside class="preview-toc-drawer open" id="tocDrawer">
+    <aside class="preview-toc-drawer closed" id="tocDrawer">
       <div class="toc-drawer-header">
-        <span class="toc-drawer-title">Table of Contents</span>
+        <span class="toc-drawer-title">Outline</span>
         <button class="toc-close-btn" id="btnCloseToc" type="button">✕</button>
       </div>
       <div class="toc-drawer-body" id="tocContainer">
-        <p class="toc-empty">Scanning headings...</p>
+        ${initialTocHtml}
       </div>
     </aside>
 
-    <!-- Markdown Canvas -->
     <main class="preview-content-area" id="previewContentArea">
       <article class="antigravity-markdown-root" id="markdownRoot">
-        <div class="initial-loading">
-          <div class="loading-spinner"></div>
-          <p>Parsing Markdown with Antigravity Rich Engine...</p>
-        </div>
+        ${initialHtml}
       </article>
     </main>
   </div>
 
-  <script nonce="${nonce}" src="${mermaidUri}"></script>
-  <script nonce="${nonce}" src="${jsUri}"></script>
+  <script nonce="${nonce}" src="${mermaidUri}" defer></script>
+  <script nonce="${nonce}" src="${jsUri}" defer></script>
 </body>
 </html>`;
   }

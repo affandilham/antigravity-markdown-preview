@@ -1,67 +1,68 @@
 (function () {
   const vscode = acquireVsCodeApi();
 
-  // State
-  let currentZoom = 1.0;
   let isSyncEnabled = true;
-  let isTocOpen = true;
+  let isTocOpen = false; // Closed by default for clean uncluttered view
+  let mermaidInitialized = false;
 
-  // DOM Elements
   const markdownRoot = document.getElementById('markdownRoot');
   const previewContentArea = document.getElementById('previewContentArea');
   const tocContainer = document.getElementById('tocContainer');
   const tocDrawer = document.getElementById('tocDrawer');
   const docTitleEl = document.getElementById('docTitle');
   const docStatsEl = document.getElementById('docStats');
-  const zoomLevelEl = document.getElementById('zoomLevel');
 
   const btnToggleToc = document.getElementById('btnToggleToc');
   const btnCloseToc = document.getElementById('btnCloseToc');
   const btnToggleSync = document.getElementById('btnToggleSync');
-  const btnZoomIn = document.getElementById('btnZoomIn');
-  const btnZoomOut = document.getElementById('btnZoomOut');
-  const btnZoomReset = document.getElementById('btnZoomReset');
   const btnExportHtml = document.getElementById('btnExportHtml');
   const btnPrint = document.getElementById('btnPrint');
 
-  // Initialize Mermaid if available
-  function initMermaid() {
-    if (window.mermaid) {
-      try {
+  // Mermaid render with safety
+  function renderMermaidDiagrams() {
+    const mermaidNodes = document.querySelectorAll('.mermaid:not([data-processed="true"])');
+    if (!mermaidNodes || mermaidNodes.length === 0) return;
+
+    if (!window.mermaid) {
+      console.warn('Mermaid library not loaded yet');
+      return;
+    }
+
+    try {
+      if (!mermaidInitialized) {
         window.mermaid.initialize({
           startOnLoad: false,
           theme: 'dark',
           themeVariables: {
             darkMode: true,
             background: '#161b22',
-            primaryColor: '#38bdf8',
-            primaryTextColor: '#e6edf3',
+            primaryColor: '#2f81f7',
+            primaryTextColor: '#c9d1d9',
             primaryBorderColor: '#30363d',
-            lineColor: '#58a6ff',
-            secondaryColor: '#a855f7',
-            tertiaryColor: '#10b981'
+            lineColor: '#8b949e',
+            secondaryColor: '#21262d',
+            tertiaryColor: '#161b22'
           },
           securityLevel: 'loose'
         });
-
-        // Run rendering on all unrendered mermaid divs
-        const mermaidElements = document.querySelectorAll('.mermaid:not([data-processed="true"])');
-        if (mermaidElements.length > 0) {
-          window.mermaid.run({
-            nodes: mermaidElements
-          });
-        }
-      } catch (err) {
-        console.error('Mermaid render error:', err);
+        mermaidInitialized = true;
       }
+
+      window.mermaid.run({
+        nodes: Array.from(mermaidNodes)
+      }).catch((err) => {
+        console.error('Mermaid async render error:', err);
+      });
+    } catch (err) {
+      console.error('Mermaid render error:', err);
     }
   }
 
-  // Setup TOC DOM
-  function renderToc(headings) {
+  // Render TOC
+  function updateTocList(headings) {
     if (!tocContainer) return;
     if (!headings || headings.length === 0) {
-      tocContainer.innerHTML = '<p class="toc-empty" style="color:var(--ag-muted);font-size:12px;padding:8px;">No headings in document.</p>';
+      tocContainer.innerHTML = '<p class="toc-empty">No headings found.</p>';
       return;
     }
 
@@ -91,9 +92,9 @@
     tocContainer.appendChild(ul);
   }
 
-  // Attach button event listeners inside rendered markdown
-  function bindMarkdownInteractions() {
-    // 1. Copy Code Buttons
+  // Bind copy buttons and interactions
+  function bindInteractions() {
+    // 1. Copy code
     document.querySelectorAll('.copy-code-btn').forEach((btn) => {
       if (btn.dataset.bound) return;
       btn.dataset.bound = 'true';
@@ -106,18 +107,18 @@
 
           const textSpan = btn.querySelector('.copy-text');
           const originalText = textSpan ? textSpan.textContent : 'Copy';
-          if (textSpan) textSpan.textContent = 'Copied!';
+          if (textSpan) textSpan.textContent = 'Copied';
           btn.classList.add('copied');
 
           setTimeout(() => {
             if (textSpan) textSpan.textContent = originalText;
             btn.classList.remove('copied');
-          }, 2000);
+          }, 1500);
         }
       });
     });
 
-    // 2. Copy Diagram Definition
+    // 2. Copy diagram code
     document.querySelectorAll('.copy-diagram-code-btn').forEach((btn) => {
       if (btn.dataset.bound) return;
       btn.dataset.bound = 'true';
@@ -125,19 +126,15 @@
       btn.addEventListener('click', () => {
         const raw = btn.getAttribute('data-code');
         if (raw) {
-          const code = decodeURIComponent(raw);
-          vscode.postMessage({ command: 'copyText', text: code });
-
+          vscode.postMessage({ command: 'copyText', text: decodeURIComponent(raw) });
           const orig = btn.textContent;
-          btn.textContent = 'Copied!';
-          setTimeout(() => {
-            btn.textContent = orig;
-          }, 2000);
+          btn.textContent = 'Copied';
+          setTimeout(() => { btn.textContent = orig; }, 1500);
         }
       });
     });
 
-    // 3. Save SVG Button for Mermaid
+    // 3. Save SVG for Mermaid
     document.querySelectorAll('.export-svg-btn').forEach((btn) => {
       if (btn.dataset.bound) return;
       btn.dataset.bound = 'true';
@@ -161,7 +158,7 @@
       });
     });
 
-    // 4. Copy Table as TSV/Markdown
+    // 4. Copy Table
     document.querySelectorAll('.copy-table-btn').forEach((btn) => {
       if (btn.dataset.bound) return;
       btn.dataset.bound = 'true';
@@ -177,62 +174,66 @@
               const cells = Array.from(tr.querySelectorAll('th, td'));
               return cells.map((td) => td.innerText.trim()).join('\t');
             });
-            const tsv = lines.join('\n');
-            vscode.postMessage({ command: 'copyText', text: tsv });
-
+            vscode.postMessage({ command: 'copyText', text: lines.join('\n') });
             const span = btn.querySelector('span');
-            if (span) span.textContent = 'Copied TSV!';
-            setTimeout(() => {
-              if (span) span.textContent = 'Copy';
-            }, 2000);
+            if (span) span.textContent = 'Copied';
+            setTimeout(() => { if (span) span.textContent = 'Copy'; }, 1500);
           }
         }
       });
     });
   }
 
-  // Active heading tracking in TOC on scroll
+  // ScrollSpy for TOC
+  let scrollSpyTimeout;
   function setupScrollSpy() {
     if (!previewContentArea) return;
 
     previewContentArea.addEventListener('scroll', () => {
-      const headings = document.querySelectorAll('.antigravity-heading');
-      if (headings.length === 0) return;
+      if (scrollSpyTimeout) return;
+      scrollSpyTimeout = setTimeout(() => {
+        scrollSpyTimeout = null;
+        const headings = document.querySelectorAll('.antigravity-heading');
+        if (headings.length === 0 || !tocContainer) return;
 
-      const containerTop = previewContentArea.scrollTop;
-      let currentActiveId = '';
+        const containerTop = previewContentArea.scrollTop;
+        let activeId = '';
 
-      headings.forEach((heading) => {
-        const top = heading.offsetTop - 80;
-        if (containerTop >= top) {
-          currentActiveId = heading.id;
-        }
-      });
-
-      if (currentActiveId && tocContainer) {
-        tocContainer.querySelectorAll('a').forEach((a) => {
-          if (a.dataset.targetId === currentActiveId) {
-            a.classList.add('active');
-          } else {
-            a.classList.remove('active');
+        headings.forEach((heading) => {
+          if (containerTop >= heading.offsetTop - 60) {
+            activeId = heading.id;
           }
         });
-      }
+
+        if (activeId) {
+          tocContainer.querySelectorAll('a').forEach((a) => {
+            if (a.dataset.targetId === activeId) {
+              a.classList.add('active');
+            } else {
+              a.classList.remove('active');
+            }
+          });
+        }
+      }, 50);
     });
   }
 
-  // Handle Zoom
-  function updateZoom(newZoom) {
-    currentZoom = Math.min(1.8, Math.max(0.6, newZoom));
-    if (markdownRoot) {
-      markdownRoot.style.transform = `scale(${currentZoom})`;
+  // Smooth throttled scroll from editor
+  let targetScrollPercent = null;
+  let isRafScheduled = false;
+
+  function performScroll() {
+    if (targetScrollPercent !== null && previewContentArea) {
+      const maxScroll = previewContentArea.scrollHeight - previewContentArea.clientHeight;
+      if (maxScroll > 0) {
+        previewContentArea.scrollTop = targetScrollPercent * maxScroll;
+      }
+      targetScrollPercent = null;
     }
-    if (zoomLevelEl) {
-      zoomLevelEl.textContent = `${Math.round(currentZoom * 100)}%`;
-    }
+    isRafScheduled = false;
   }
 
-  // Message Handler from Extension
+  // Extension Messages Listener
   window.addEventListener('message', (event) => {
     const message = event.data;
     switch (message.command) {
@@ -246,16 +247,17 @@
         if (docStatsEl && message.stats) {
           docStatsEl.textContent = message.stats;
         }
-        renderToc(message.headings);
-        bindMarkdownInteractions();
-        initMermaid();
+        updateTocList(message.headings);
+        bindInteractions();
+        renderMermaidDiagrams();
         break;
 
       case 'syncScroll':
-        if (isSyncEnabled && previewContentArea && typeof message.percentage === 'number') {
-          const maxScroll = previewContentArea.scrollHeight - previewContentArea.clientHeight;
-          if (maxScroll > 0) {
-            previewContentArea.scrollTop = message.percentage * maxScroll;
+        if (isSyncEnabled && typeof message.percentage === 'number') {
+          targetScrollPercent = message.percentage;
+          if (!isRafScheduled) {
+            isRafScheduled = true;
+            requestAnimationFrame(performScroll);
           }
         }
         break;
@@ -280,10 +282,6 @@
     btnToggleSync.classList.toggle('active-state', isSyncEnabled);
   });
 
-  btnZoomIn?.addEventListener('click', () => updateZoom(currentZoom + 0.1));
-  btnZoomOut?.addEventListener('click', () => updateZoom(currentZoom - 0.1));
-  btnZoomReset?.addEventListener('click', () => updateZoom(1.0));
-
   btnExportHtml?.addEventListener('click', () => {
     vscode.postMessage({ command: 'exportHtml' });
   });
@@ -292,6 +290,15 @@
     window.print();
   });
 
-  // Initialize
+  // Initial setup
+  bindInteractions();
   setupScrollSpy();
+
+  // Delay mermaid initialization slightly so DOM paint finishes first
+  setTimeout(() => {
+    renderMermaidDiagrams();
+  }, 100);
+
+  // Notify extension that webview is ready
+  vscode.postMessage({ command: 'ready' });
 })();
