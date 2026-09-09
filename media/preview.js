@@ -161,7 +161,11 @@
     if (isSyncEnabled && typeof lastEditorLine === 'number' && lastEditorLine >= 0) {
       requestAnimationFrame(() => {
         scrollToTargetLine(lastEditorLine, lastEditorPercentage);
+        // Explicitly guarantee topbar is visible after initial auto-scroll alignment
+        showToolbar();
       });
+    } else {
+      showToolbar();
     }
   }
 
@@ -442,7 +446,7 @@
   function scrollToTargetLine(targetLine, fallbackPercentage) {
     const root = markdownRoot || document.getElementById('markdownRoot');
     if (!previewContentArea || !root) return;
-    markProgrammaticScroll(250);
+    markProgrammaticScroll(400);
 
     if (targetLine <= 0) {
       previewContentArea.scrollTop = 0;
@@ -550,6 +554,9 @@
   }
 
   // Auto-hide and auto-show toolbar on scroll with deliberate distance threshold & gentle animation
+  let showToolbar = () => {};
+  let hideToolbar = () => {};
+
   function setupAutoHideToolbar() {
     if (!previewToolbar || !previewContentArea) return;
 
@@ -559,23 +566,36 @@
     let accumulatedUp = 0;
     let accumulatedDown = 0;
 
-    function hideToolbar() {
+    hideToolbar = function() {
       if (isToolbarHidden || isTocOpen) return;
       isToolbarHidden = true;
       previewToolbar.classList.add('toolbar-hidden');
-    }
+    };
 
-    function showToolbar() {
-      if (!isToolbarHidden) return;
+    showToolbar = function() {
+      if (!isToolbarHidden) {
+        lockRootScroll();
+        return;
+      }
       isToolbarHidden = false;
       previewToolbar.classList.remove('toolbar-hidden');
+      accumulatedDown = 0;
+      accumulatedUp = 0;
       lockRootScroll();
-    }
+    };
 
     // Scroll listener on the content area
     previewContentArea.addEventListener('scroll', () => {
       const currentScrollTop = previewContentArea.scrollTop;
       const delta = currentScrollTop - lastScrollTop;
+
+      // 0. Ignore programmatic scrolling (editor sync, initial page load alignment, outline click)
+      if (isProgrammaticScroll) {
+        lastScrollTop = currentScrollTop;
+        accumulatedDown = 0;
+        accumulatedUp = 0;
+        return;
+      }
 
       // 1. At or near document top: ALWAYS show toolbar immediately
       if (currentScrollTop <= 35) {
