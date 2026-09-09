@@ -55,6 +55,7 @@
     return detectedLine;
   }
 
+  const previewToolbar = document.getElementById('previewToolbar');
   const markdownRoot = document.getElementById('markdownRoot');
   const previewContentArea = document.getElementById('previewContentArea');
   const tocContainer = document.getElementById('tocContainer');
@@ -525,6 +526,91 @@
     }, { passive: true });
   }
 
+  // Auto-hide and auto-show toolbar on scroll for effortless, comfortable reading
+  function setupAutoHideToolbar() {
+    if (!previewToolbar || !previewContentArea) return;
+
+    let lastScrollTop = previewContentArea.scrollTop;
+    let isToolbarHidden = false;
+    let isMouseNearTop = false;
+
+    function hideToolbar() {
+      if (isToolbarHidden || isTocOpen) return;
+      isToolbarHidden = true;
+      previewToolbar.classList.add('toolbar-hidden');
+    }
+
+    function showToolbar() {
+      if (!isToolbarHidden) return;
+      isToolbarHidden = false;
+      previewToolbar.classList.remove('toolbar-hidden');
+    }
+
+    // Scroll listener on the content area
+    previewContentArea.addEventListener('scroll', () => {
+      const currentScrollTop = previewContentArea.scrollTop;
+      const delta = currentScrollTop - lastScrollTop;
+
+      // 1. At or near document top: ALWAYS show toolbar
+      if (currentScrollTop <= 35) {
+        showToolbar();
+        lastScrollTop = currentScrollTop;
+        return;
+      }
+
+      // 2. If Outline drawer is active: stay visible
+      if (isTocOpen) {
+        showToolbar();
+        lastScrollTop = currentScrollTop;
+        return;
+      }
+
+      // 3. If mouse is hovering near top edge: keep toolbar visible
+      if (isMouseNearTop) {
+        lastScrollTop = currentScrollTop;
+        return;
+      }
+
+      // 4. Ignore tiny touchpad / scroll jitter (< 6px)
+      if (Math.abs(delta) < 6) {
+        return;
+      }
+
+      // 5. Prevent bottom overscroll bounce from triggering false show
+      const maxScroll = previewContentArea.scrollHeight - previewContentArea.clientHeight;
+      if (currentScrollTop >= maxScroll - 10 && delta > 0) {
+        lastScrollTop = currentScrollTop;
+        return;
+      }
+
+      // 6. User scrolls DOWN -> auto-hide toolbar
+      if (delta > 0 && currentScrollTop > 50) {
+        hideToolbar();
+      }
+      // 7. User scrolls UP -> auto-show toolbar
+      else if (delta < 0) {
+        showToolbar();
+      }
+
+      lastScrollTop = currentScrollTop;
+    }, { passive: true });
+
+    // Effortless mouse peek: moving mouse near top edge smoothly reveals toolbar
+    window.addEventListener('mousemove', (e) => {
+      if (e.clientY <= 38) {
+        isMouseNearTop = true;
+        showToolbar();
+      } else if (e.clientY > 65) {
+        if (isMouseNearTop) {
+          isMouseNearTop = false;
+          if (previewContentArea.scrollTop > 50 && !isTocOpen) {
+            hideToolbar();
+          }
+        }
+      }
+    }, { passive: true });
+  }
+
   // ScrollSpy for TOC
   let scrollSpyTimeout;
   function setupScrollSpy() {
@@ -603,6 +689,9 @@
     isTocOpen = !isTocOpen;
     tocDrawer?.classList.toggle('closed', !isTocOpen);
     btnToggleToc.classList.toggle('active-state', isTocOpen);
+    if (isTocOpen) {
+      previewToolbar?.classList.remove('toolbar-hidden');
+    }
   });
 
   btnCloseToc?.addEventListener('click', () => {
@@ -658,6 +747,7 @@
   bindInteractions();
   setupScrollSpy();
   setupReverseScrollSync();
+  setupAutoHideToolbar();
 
   renderMermaidDiagrams();
 
