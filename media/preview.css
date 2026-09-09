@@ -66,6 +66,15 @@ body.vscode-dark {
   box-sizing: border-box;
 }
 
+html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden !important;
+  overscroll-behavior-x: none;
+}
+
 body.antigravity-preview-body {
   margin: 0;
   padding: 0;
@@ -75,7 +84,11 @@ body.antigravity-preview-body {
   font-size: 14.5px;
   line-height: 1.65;
   height: 100vh;
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
+  overflow-x: hidden !important;
+  overscroll-behavior-x: none;
   display: flex;
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
@@ -143,8 +156,13 @@ body.vscode-dark .toolbar-btn.active-state {
 
 .preview-layout {
   display: flex;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
+  overflow-x: hidden !important;
   position: relative;
 }
 
@@ -247,17 +265,34 @@ body.vscode-dark .toc-drawer-body a.active {
    ========================================================================== */
 
 .preview-content-area {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   overflow-y: auto;
+  overflow-x: hidden !important;
+  overscroll-behavior-x: none;
   padding: 40px 52px;
   scroll-behavior: auto;
   background-color: var(--ag-bg);
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .preview-content-area {
+    padding: 20px 16px;
+  }
 }
 
 .antigravity-markdown-root {
+  width: 100%;
   max-width: 840px;
   margin: 0 auto;
   color: var(--ag-fg);
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .antigravity-markdown-root h1,
@@ -270,6 +305,9 @@ body.vscode-dark .toc-drawer-body a.active {
   font-weight: 600;
   line-height: 1.35;
   scroll-margin-top: 50px;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .antigravity-markdown-root h1 {
@@ -303,6 +341,9 @@ body.vscode-dark .toc-drawer-body a.active {
 .antigravity-markdown-root p {
   color: var(--ag-fg);
   margin: 16px 0;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .antigravity-markdown-root ul,
@@ -315,6 +356,9 @@ body.vscode-dark .toc-drawer-body a.active {
 .antigravity-markdown-root li {
   margin: 4px 0;
   color: var(--ag-fg);
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .antigravity-markdown-root strong {
@@ -481,8 +525,11 @@ body.vscode-dark .toc-drawer-body a.active {
 .code-block-body pre {
   margin: 0;
   padding: 12px 14px;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
+  box-sizing: border-box;
 }
 
 .code-block-body pre code {
@@ -502,6 +549,9 @@ body.vscode-dark .toc-drawer-body a.active {
   border-radius: 4px;
   font-family: var(--ag-mono);
   font-size: 85%;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 /* Syntax Highlighting Colors */
@@ -710,7 +760,19 @@ tr:hover td {
   justify-content: center;
   align-items: center;
   overflow-x: auto;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
   background-color: var(--ag-bg);
+}
+
+.diagram-body .mermaid {
+  max-width: 100%;
+}
+
+.diagram-body .mermaid svg {
+  max-width: 100%;
+  height: auto;
 }
 
 .plantuml-svg-img {

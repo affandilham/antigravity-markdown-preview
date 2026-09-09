@@ -41,6 +41,9 @@
     if (zoomLevelEl) {
       zoomLevelEl.textContent = `${Math.round(currentZoom * 100)}%`;
     }
+    if (previewContentArea) {
+      previewContentArea.scrollLeft = 0;
+    }
   }
 
   function zoomIn() {
@@ -340,6 +343,10 @@
     previewContentArea.addEventListener('pointerdown', markUserScrolling, { passive: true });
 
     previewContentArea.addEventListener('scroll', () => {
+      if (previewContentArea.scrollLeft !== 0) {
+        previewContentArea.scrollLeft = 0;
+      }
+
       if (!isSyncEnabled || !isUserScrollingWebview) return;
 
       const now = Date.now();
@@ -469,6 +476,13 @@
   setTimeout(() => {
     renderMermaidDiagrams();
   }, 100);
+
+  // Hard lock horizontal window scrolling
+  window.addEventListener('scroll', () => {
+    if (window.scrollX !== 0) {
+      window.scrollTo(0, window.scrollY);
+    }
+  });
 
   // Notify extension that webview is ready
   vscode.postMessage({ command: 'ready' });
