@@ -303,7 +303,7 @@ body.vscode-dark .toc-drawer-body a.active {
   overflow-y: auto;
   overflow-x: hidden !important;
   overscroll-behavior-x: none;
-  padding: 40px 52px;
+  padding: 24px 52px 48px;
   scroll-behavior: auto;
   background-color: var(--ag-bg);
   box-sizing: border-box;
@@ -311,7 +311,7 @@ body.vscode-dark .toc-drawer-body a.active {
 
 @media (max-width: 640px) {
   .preview-content-area {
-    padding: 20px 16px;
+    padding: 16px 16px 32px;
   }
 }
 
@@ -325,6 +325,115 @@ body.vscode-dark .toc-drawer-body a.active {
   word-wrap: break-word;
   word-break: break-word;
   transition: max-width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.antigravity-markdown-root > :first-child {
+  margin-top: 0 !important;
+}
+
+/* ==========================================================================
+   Frontmatter Metadata Card
+   ========================================================================== */
+
+.frontmatter-card {
+  margin: 0 0 24px 0;
+  border: 1px solid var(--ag-border-subtle);
+  border-radius: 8px;
+  background-color: var(--ag-surface);
+  overflow: hidden;
+  font-size: 13px;
+  transition: border-color 0.15s ease;
+}
+
+.frontmatter-card:hover {
+  border-color: var(--ag-border);
+}
+
+.frontmatter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background-color: var(--ag-surface-hover);
+  border-bottom: 1px solid var(--ag-border-subtle);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.frontmatter-header::-webkit-details-marker {
+  display: none;
+}
+
+.frontmatter-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.frontmatter-icon {
+  color: var(--ag-fg-subtle);
+  flex-shrink: 0;
+}
+
+.frontmatter-badge {
+  font-family: var(--ag-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ag-fg-muted);
+}
+
+.frontmatter-count {
+  font-size: 11.5px;
+  color: var(--ag-fg-subtle);
+}
+
+.frontmatter-card:not([open]) .frontmatter-header {
+  border-bottom: none;
+}
+
+.frontmatter-content {
+  padding: 6px 14px;
+  overflow-x: auto;
+}
+
+.frontmatter-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 !important;
+  font-size: 12.5px;
+}
+
+.frontmatter-table tr {
+  border-bottom: 1px solid var(--ag-border-subtle);
+}
+
+.frontmatter-table tr:last-child {
+  border-bottom: none;
+}
+
+.frontmatter-table td {
+  padding: 7px 8px;
+  vertical-align: top;
+  border: none !important;
+}
+
+.frontmatter-table .fm-key {
+  font-family: var(--ag-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ag-fg-muted);
+  white-space: nowrap;
+  width: 1%;
+  padding-right: 20px;
+}
+
+.frontmatter-table .fm-val {
+  color: var(--ag-fg);
+  word-break: break-word;
+  line-height: 1.5;
 }
 
 .antigravity-markdown-root h1,

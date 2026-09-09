@@ -22,9 +22,21 @@ export function extractHeadings(markdown: string): TocItem[] {
   const lines = markdown.split(/\r?\n/);
   const slugCounts = new Map<string, number>();
 
+  let startIndex = 0;
+  // Ignore frontmatter at start of file
+  if (lines.length > 0 && lines[0].trim() === '---') {
+    for (let i = 1; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (trimmed === '---' || trimmed === '...') {
+        startIndex = i + 1;
+        break;
+      }
+    }
+  }
+
   let inCodeBlock = false;
 
-  for (let i = 0; i < lines.length; i++) {
+  for (let i = startIndex; i < lines.length; i++) {
     const line = lines[i];
     if (line.trim().startsWith('```')) {
       inCodeBlock = !inCodeBlock;

@@ -8,6 +8,7 @@ import { embedPlugin } from './embedPlugin';
 import { tocPlugin, extractHeadings, TocItem } from './tocPlugin';
 import { tablePlugin } from './tablePlugin';
 import { sourceMapPlugin } from './sourceMapPlugin';
+import { frontmatterPlugin } from './frontmatterPlugin';
 
 export interface MarkdownEngineConfig {
   plantumlServer?: string;
@@ -34,6 +35,7 @@ export class MarkdownEngine {
     this.md.use(sourceMapPlugin);
 
     // 2. Specialized feature plugins
+    this.md.use(frontmatterPlugin);
     this.md.use(alertPlugin);
     this.md.use(codeBlockPlugin, {
       lineNumbers: this.config.codeLineNumbers ?? true
