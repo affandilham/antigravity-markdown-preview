@@ -42,7 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  // Event: Document changed -> live update
+  // Event: Document edited -> fast streaming update (40ms)
   const changeDocSub = vscode.workspace.onDidChangeTextDocument((event) => {
     if (MarkdownPreviewPanel.currentPanel && event.document.languageId === 'markdown') {
       const activeEditor = vscode.window.activeTextEditor;
@@ -59,26 +59,42 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
-  // Event: Editor scroll -> throttled sync with webview (35ms ~ 30fps)
-  let scrollThrottleTimer: NodeJS.Timeout | undefined;
+  // Event: Real-time 60fps streaming scroll synchronization
+  let lastScrollTimestamp = 0;
+  let scrollTrailingTimer: NodeJS.Timeout | null = null;
+  let latestScrollPercentage = 0;
+
   const scrollSub = vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
     if (MarkdownPreviewPanel.currentPanel && event.textEditor.document.languageId === 'markdown') {
       const config = vscode.workspace.getConfiguration('antigravity.markdownPreview');
       const isSyncEnabled = config.get<boolean>('scrollSync', true);
       if (!isSyncEnabled) return;
 
-      if (scrollThrottleTimer) {
-        clearTimeout(scrollThrottleTimer);
-      }
-      scrollThrottleTimer = setTimeout(() => {
-        const ranges = event.visibleRanges;
-        if (ranges.length > 0) {
-          const topVisibleLine = ranges[0].start.line;
-          const totalLines = event.textEditor.document.lineCount;
-          const percentage = totalLines > 1 ? topVisibleLine / (totalLines - 1) : 0;
-          MarkdownPreviewPanel.currentPanel?.syncScroll(percentage);
+      const ranges = event.visibleRanges;
+      if (ranges.length === 0) return;
+
+      const topVisibleLine = ranges[0].start.line;
+      const totalLines = event.textEditor.document.lineCount;
+      const percentage = totalLines > 1 ? topVisibleLine / (totalLines - 1) : 0;
+      latestScrollPercentage = percentage;
+
+      const now = Date.now();
+      const elapsed = now - lastScrollTimestamp;
+
+      // Stream immediately if more than 16ms (~60fps) has elapsed
+      if (elapsed >= 16) {
+        lastScrollTimestamp = now;
+        MarkdownPreviewPanel.currentPanel.syncScroll(percentage);
+      } else {
+        // Otherwise schedule trailing frame so no position is ever lost
+        if (!scrollTrailingTimer) {
+          scrollTrailingTimer = setTimeout(() => {
+            scrollTrailingTimer = null;
+            lastScrollTimestamp = Date.now();
+            MarkdownPreviewPanel.currentPanel?.syncScroll(latestScrollPercentage);
+          }, 16 - elapsed);
         }
-      }, 35);
+      }
     }
   });
 

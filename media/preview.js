@@ -234,21 +234,6 @@
     });
   }
 
-  // Smooth throttled scroll from editor
-  let targetScrollPercent = null;
-  let isRafScheduled = false;
-
-  function performScroll() {
-    if (targetScrollPercent !== null && previewContentArea) {
-      const maxScroll = previewContentArea.scrollHeight - previewContentArea.clientHeight;
-      if (maxScroll > 0) {
-        previewContentArea.scrollTop = targetScrollPercent * maxScroll;
-      }
-      targetScrollPercent = null;
-    }
-    isRafScheduled = false;
-  }
-
   // Extension Messages Listener
   window.addEventListener('message', (event) => {
     const message = event.data;
@@ -269,11 +254,11 @@
         break;
 
       case 'syncScroll':
-        if (isSyncEnabled && typeof message.percentage === 'number') {
-          targetScrollPercent = message.percentage;
-          if (!isRafScheduled) {
-            isRafScheduled = true;
-            requestAnimationFrame(performScroll);
+        // Pure Instant Stream - 0ms delay, zero jitter
+        if (isSyncEnabled && previewContentArea && typeof message.percentage === 'number') {
+          const maxScroll = previewContentArea.scrollHeight - previewContentArea.clientHeight;
+          if (maxScroll > 0) {
+            previewContentArea.scrollTop = message.percentage * maxScroll;
           }
         }
         break;
@@ -310,7 +295,6 @@
   bindInteractions();
   setupScrollSpy();
 
-  // Delay mermaid initialization slightly so DOM paint finishes first
   setTimeout(() => {
     renderMermaidDiagrams();
   }, 100);

@@ -277,7 +277,7 @@ body.vscode-dark .toc-drawer-body a.active {
   flex: 1;
   overflow-y: auto;
   padding: 40px 52px;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   background-color: var(--ag-bg);
 }
 

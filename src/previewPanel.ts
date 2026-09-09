@@ -53,7 +53,7 @@ export class MarkdownPreviewPanel {
       codeLineNumbers: config.get<boolean>('codeLineNumbers', true)
     });
 
-    // Render initial content directly into HTML so there is zero initial delay
+    // Instant initial render directly in HTML
     this.refresh();
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -98,7 +98,6 @@ export class MarkdownPreviewPanel {
     const title = getFileName(this._document.fileName);
 
     if (!this._isWebviewReady) {
-      // Direct render on first load
       this._panel.webview.html = this._getHtmlForWebview(html, headings, stats, title);
     } else {
       this.updateContent();
@@ -109,6 +108,7 @@ export class MarkdownPreviewPanel {
     if (this._updateTimeout) {
       clearTimeout(this._updateTimeout);
     }
+    // 40ms fast streaming update when editing text
     this._updateTimeout = setTimeout(() => {
       const text = this._document.getText();
       const { html, headings } = this._markdownEngine.render(text);
@@ -121,7 +121,7 @@ export class MarkdownPreviewPanel {
         stats,
         title: getFileName(this._document.fileName)
       });
-    }, 200);
+    }, 40);
   }
 
   public syncScroll(topPercentage: number): void {
@@ -158,10 +158,18 @@ export class MarkdownPreviewPanel {
   <title>${escapeHtml(title)}</title>
   <style>
     :root {
-      --bg: #0e1116;
-      --fg: #d1d7e0;
-      --border: #21262d;
-      --accent: #58a6ff;
+      --bg: #ffffff;
+      --fg: #1f2328;
+      --border: rgba(128, 128, 128, 0.2);
+      --accent: #0969da;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1117;
+        --fg: #e6edf3;
+        --border: rgba(255, 255, 255, 0.12);
+        --accent: #58a6ff;
+      }
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -172,12 +180,12 @@ export class MarkdownPreviewPanel {
       margin: 0 auto;
       padding: 48px 24px;
     }
-    h1, h2, h3, h4 { color: #f0f6fc; }
-    pre code { background: #161b22; padding: 14px; border-radius: 6px; display: block; overflow-x: auto; font-size: 13px; }
+    h1, h2, h3, h4 { color: var(--fg); }
+    pre code { background: rgba(128, 128, 128, 0.08); padding: 14px; border-radius: 6px; display: block; overflow-x: auto; font-size: 13px; }
     table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13.5px; }
-    th, td { border: 1px solid var(--border); padding: 8px 12px; }
-    th { background: #161b22; color: #f0f6fc; }
-    blockquote { border-left: 3px solid var(--accent); margin: 16px 0; padding: 4px 16px; color: #8b949e; }
+    th, td { border: 1px solid var(--border); padding: 8px 12px; color: var(--fg); }
+    th { background: rgba(128, 128, 128, 0.05); }
+    blockquote { border-left: 3px solid var(--accent); margin: 16px 0; padding: 4px 16px; }
     img { max-width: 100%; border-radius: 6px; }
   </style>
 </head>
@@ -201,7 +209,6 @@ export class MarkdownPreviewPanel {
     const mermaidUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaUri, 'vendor', 'mermaid.min.js'));
 
     const nonce = getNonce();
-    const hasMermaid = initialHtml.includes('class="mermaid"');
 
     // Build initial TOC HTML
     let initialTocHtml = '<p class="toc-empty">No headings found.</p>';
@@ -223,7 +230,6 @@ export class MarkdownPreviewPanel {
   <link rel="stylesheet" href="${cssUri}">
 </head>
 <body class="antigravity-preview-body">
-  <!-- Minimalist Professional Toolbar -->
   <header class="preview-toolbar" id="previewToolbar">
     <div class="toolbar-left">
       <button class="toolbar-btn" id="btnToggleToc" title="Toggle Table of Contents" type="button">
@@ -262,7 +268,6 @@ export class MarkdownPreviewPanel {
     </div>
   </header>
 
-  <!-- Content & Outline Layout -->
   <div class="preview-layout" id="previewLayout">
     <aside class="preview-toc-drawer closed" id="tocDrawer">
       <div class="toc-drawer-header">
