@@ -1,14 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Modern Dark Squircle Canvas (Hex #0d1117) -->
-  <rect width="512" height="512" rx="112" fill="#0d1117"/>
-  <rect x="2" y="2" width="508" height="508" rx="110" fill="none" stroke="#21262d" stroke-width="3"/>
+  <defs>
+    <!-- Antigravity signature spectrum gradient -->
+    <linearGradient id="agGradient" x1="0%" y1="100%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#3889fe" />
+      <stop offset="20%" stop-color="#4aaaa8" />
+      <stop offset="45%" stop-color="#9dba62" />
+      <stop offset="60%" stop-color="#e98a39" />
+      <stop offset="78%" stop-color="#d5756a" />
+      <stop offset="90%" stop-color="#8d82c7" />
+      <stop offset="100%" stop-color="#3889fe" />
+    </linearGradient>
 
-  <!-- Perfectly Symmetrical Emblem (56px left, 56px right, 160px top, 160px bottom) -->
-  <g transform="translate(56, 160)">
-    <!-- Markdown 'M' in Solid Pure White (#ffffff) -->
-    <path d="M 0,0 L 0,192 L 44,192 L 44,80 L 94,144 L 132,144 L 182,80 L 182,192 L 226,192 L 226,0 L 178,0 L 113,84 L 48,0 Z" fill="#ffffff"/>
+    <!-- Grid pattern identical to Antigravity IDE app icon -->
+    <pattern id="agGrid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#26272e" stroke-width="1.5"/>
+    </pattern>
+    
+    <!-- Crisp drop shadow for foreground M -->
+    <filter id="mShadow" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
 
-    <!-- Antigravity Ascending Arrow '↑' in Solid Electric Blue (#388bfd) -->
-    <path d="M 307,76 L 264,76 L 332,0 L 400,76 L 357,76 L 357,192 L 307,192 Z" fill="#388bfd"/>
+  <!-- Dark Squircle Canvas -->
+  <rect width="512" height="512" rx="112" fill="#18191f"/>
+  <rect width="512" height="512" rx="112" fill="url(#agGrid)"/>
+  <rect x="2" y="2" width="508" height="508" rx="110" fill="none" stroke="#2c2d36" stroke-width="3"/>
+
+  <!-- Antigravity Arch with Official Spectrum Gradient -->
+  <!-- Transformed from 180x180 to ~350x350, centered -->
+  <g transform="translate(66, 68) scale(2.11)">
+    <path d="M144.248 149.062c7.5 5.626 18.75 1.876 8.437-8.437-30.937-30-24.375-112.5-62.812-112.5-38.438 0-31.875 82.5-62.813 112.5-11.25 11.25.938 14.063 8.438 8.437 29.062-19.687 27.187-54.375 54.375-54.375 27.187 0 25.312 34.688 54.375 54.375Z" fill="url(#agGradient)"/>
+  </g>
+
+  <!-- Foreground Markdown 'M' in Crisp White with Drop Shadow -->
+  <g transform="translate(156, 218)" filter="url(#mShadow)">
+    <path d="M 0,0 L 0,160 L 40,160 L 40,68 L 84,124 L 116,124 L 160,68 L 160,160 L 200,160 L 200,0 L 156,0 L 100,72 L 44,0 Z" fill="#ffffff"/>
   </g>
 </svg>
