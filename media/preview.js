@@ -1211,6 +1211,7 @@
   let currentDiagramHeight = 600;
   let isModalOpen = false;
   let modalRafId = null;
+  let lastRenderedScale = -1;
 
   const modalOverlay = document.getElementById('diagramModalOverlay');
   const modalBackdrop = document.getElementById('diagramModalBackdrop');
@@ -1234,12 +1235,14 @@
 
   function applyModalTransform() {
     if (!modalCanvas) return;
-    modalCanvas.style.transform = `translate(${modalTranslate.x}px, ${modalTranslate.y}px) scale(${modalScale})`;
-    if (modalViewport) {
-      modalViewport.style.backgroundPosition = `${modalTranslate.x}px ${modalTranslate.y}px`;
-    }
-    if (modalZoomLevel) {
-      modalZoomLevel.textContent = `${Math.round(modalScale * 100)}%`;
+    // Pure GPU compositor transform (translate3d) - zero CPU repaint
+    modalCanvas.style.transform = `translate3d(${modalTranslate.x}px, ${modalTranslate.y}px, 0) scale(${modalScale})`;
+
+    // Only touch DOM text if zoom percentage integer actually changed
+    const currentPercent = Math.round(modalScale * 100);
+    if (modalZoomLevel && currentPercent !== lastRenderedScale) {
+      lastRenderedScale = currentPercent;
+      modalZoomLevel.textContent = `${currentPercent}%`;
     }
   }
 
@@ -1328,6 +1331,8 @@
     modalCanvas.appendChild(clone);
 
     isModalOpen = true;
+    document.body.classList.add('modal-open');
+    document.documentElement.classList.add('modal-open');
     modalOverlay.classList.add('active');
     modalOverlay.setAttribute('aria-hidden', 'false');
 
@@ -1337,13 +1342,15 @@
   function closeDiagramModal() {
     if (!modalOverlay) return;
     isModalOpen = false;
+    document.body.classList.remove('modal-open');
+    document.documentElement.classList.remove('modal-open');
     modalOverlay.classList.remove('active');
     modalOverlay.setAttribute('aria-hidden', 'true');
     setTimeout(() => {
       if (!isModalOpen && modalCanvas) {
         modalCanvas.innerHTML = '';
       }
-    }, 250);
+    }, 200);
   }
 
   function setupDiagramModal() {
@@ -1405,7 +1412,7 @@
       });
     }
 
-    // High-precision Wheel Listener: Handles Trackpad Pinch, Trackpad Two-Finger Pan, and Mouse Wheel
+    // High-performance wheel listener for trackpad pinch/pan and mouse wheel
     modalViewport.addEventListener('wheel', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -1416,11 +1423,10 @@
         y: e.clientY - rect.top
       };
 
-      // Case 1: Pinch-to-zoom on trackpad (macOS / Chromium sets e.ctrlKey = true on trackpad pinch)
-      // or user holding Cmd / Ctrl / Alt key
+      // Case 1: Pinch-to-zoom on trackpad (macOS / Chromium sets e.ctrlKey = true)
+      // or user holding Cmd / Ctrl / Alt
       if (e.ctrlKey || e.metaKey || e.altKey) {
-        // Continuous smooth exponential zoom, clamped to prevent sudden jumps
-        const zoomSensitivity = 0.0035; // Gentle, tactile response calibrated for trackpad
+        const zoomSensitivity = 0.0035;
         const clampedDelta = Math.max(-35, Math.min(35, e.deltaY));
         const factor = Math.exp(-clampedDelta * zoomSensitivity);
         zoomModalAtPoint(pointer, factor);
@@ -1428,7 +1434,6 @@
       }
 
       // Case 2: Physical notched mouse wheel
-      // (Identified by large integer deltaY without deltaX, or deltaMode !== 0)
       const isPhysicalMouseWheel = e.deltaMode !== 0 || (
         Math.abs(e.deltaY) >= 60 &&
         Math.abs(e.deltaX) === 0 &&
@@ -1436,14 +1441,12 @@
       );
 
       if (isPhysicalMouseWheel) {
-        // Gentle stepped zoom for physical mouse wheel (calm 8% step, not 15%+)
         const factor = e.deltaY < 0 ? 1.08 : 0.92;
         zoomModalAtPoint(pointer, factor);
         return;
       }
 
-      // Case 3: Trackpad two-finger pan / geser
-      // Continuous displacement (e.deltaX, e.deltaY) from two-finger sliding
+      // Case 3: Trackpad two-finger pan (geser)
       const panDamping = 0.85;
       modalTranslate.x -= e.deltaX * panDamping;
       modalTranslate.y -= e.deltaY * panDamping;
