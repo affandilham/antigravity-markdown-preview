@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Modern Dark Squircle Canvas (Hex #0d1117) -->
+  <rect width="512" height="512" rx="112" fill="#0d1117"/>
+  <rect x="2" y="2" width="508" height="508" rx="110" fill="none" stroke="#21262d" stroke-width="3"/>
+
+  <!-- Perfectly Symmetrical Emblem (56px left, 56px right, 160px top, 160px bottom) -->
+  <g transform="translate(56, 160)">
+    <!-- Markdown 'M' in Solid Pure White (#ffffff) -->
+    <path d="M 0,0 L 0,192 L 44,192 L 44,80 L 94,144 L 132,144 L 182,80 L 182,192 L 226,192 L 226,0 L 178,0 L 113,84 L 48,0 Z" fill="#ffffff"/>
+
+    <!-- Antigravity Ascending Arrow '↑' in Solid Electric Blue (#388bfd) -->
+    <path d="M 307,76 L 264,76 L 332,0 L 400,76 L 357,76 L 357,192 L 307,192 Z" fill="#388bfd"/>
+  </g>
+</svg>
