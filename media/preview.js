@@ -214,6 +214,13 @@
         window.mermaid.initialize({
           startOnLoad: false,
           theme: dark ? 'dark' : 'default',
+          flowchart: {
+            htmlLabels: false,
+            useMaxWidth: true
+          },
+          sequence: {
+            useMaxWidth: true
+          },
           themeVariables: dark ? {
             darkMode: true,
             background: '#161b22',
@@ -386,19 +393,94 @@
       });
     });
 
+  // Resolve the SVG element belonging strictly to the button's diagram card
+  function getDiagramSvg(btn) {
+    const card = btn.closest('.antigravity-diagram-card');
+    if (card) {
+      const bodySvg = card.querySelector('.diagram-body svg');
+      if (bodySvg) return bodySvg;
+      const anySvg = card.querySelector('svg:not(.diagram-type svg)');
+      if (anySvg) return anySvg;
+    }
+    const targetId = btn.getAttribute('data-target');
+    if (targetId) {
+      const el = document.getElementById(targetId);
+      if (el) {
+        if (el.tagName && el.tagName.toLowerCase() === 'svg') return el;
+        const childSvg = el.querySelector('svg');
+        if (childSvg) return childSvg;
+      }
+    }
+    return null;
+  }
+
   // Helper to convert SVG element to high-res PNG data URL with theme-adaptive background
   function convertSvgToPngDataUrl(svgElement, callback) {
     try {
       const clonedSvg = svgElement.cloneNode(true);
-      const bbox = svgElement.getBBox ? svgElement.getBBox() : null;
-      const rect = svgElement.getBoundingClientRect();
-      const width = Math.max(100, Math.round(svgElement.viewBox?.baseVal?.width || (bbox && bbox.width) || rect.width || 800));
-      const height = Math.max(80, Math.round(svgElement.viewBox?.baseVal?.height || (bbox && bbox.height) || rect.height || 600));
 
+      // Sanitize any foreignObject if present to prevent Chromium canvas tainting
+      const foreignObjects = clonedSvg.querySelectorAll('foreignObject');
+      if (foreignObjects.length > 0) {
+        foreignObjects.forEach((fo) => {
+          const text = fo.textContent ? fo.textContent.trim() : '';
+          const fx = parseFloat(fo.getAttribute('x') || '0') + (parseFloat(fo.getAttribute('width') || '0') / 2);
+          const fy = parseFloat(fo.getAttribute('y') || '0') + (parseFloat(fo.getAttribute('height') || '0') / 2);
+          const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          textEl.setAttribute('x', String(fx));
+          textEl.setAttribute('y', String(fy));
+          textEl.setAttribute('text-anchor', 'middle');
+          textEl.setAttribute('dominant-baseline', 'central');
+          textEl.setAttribute('fill', isDarkMode() ? '#c9d1d9' : '#1f2328');
+          textEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif');
+          textEl.setAttribute('font-size', '14px');
+          textEl.textContent = text;
+          if (fo.parentNode) {
+            fo.parentNode.replaceChild(textEl, fo);
+          }
+        });
+      }
+
+      let bbox = null;
+      try {
+        if (typeof svgElement.getBBox === 'function') {
+          bbox = svgElement.getBBox();
+        }
+      } catch (_) {}
+
+      const rect = svgElement.getBoundingClientRect();
+      const viewBox = svgElement.viewBox && svgElement.viewBox.baseVal;
+      let width = 800;
+      let height = 600;
+
+      if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
+        width = Math.round(viewBox.width);
+        height = Math.round(viewBox.height);
+      } else if (bbox && bbox.width > 0 && bbox.height > 0) {
+        width = Math.round(bbox.width);
+        height = Math.round(bbox.height);
+      } else if (rect.width > 0 && rect.height > 0) {
+        width = Math.round(rect.width);
+        height = Math.round(rect.height);
+      }
+
+      width = Math.max(100, width);
+      height = Math.max(80, height);
+
+      clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
       clonedSvg.setAttribute('width', String(width));
       clonedSvg.setAttribute('height', String(height));
       if (!clonedSvg.getAttribute('viewBox')) {
         clonedSvg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      }
+
+      // Ensure internal diagram CSS styles are preserved
+      if (!clonedSvg.querySelector('style')) {
+        const docStyles = document.querySelectorAll('style[id*="mermaid"]');
+        docStyles.forEach((s) => {
+          clonedSvg.insertBefore(s.cloneNode(true), clonedSvg.firstChild);
+        });
       }
 
       // Add background rect matching active theme so PNG is clean and legible
@@ -460,11 +542,11 @@
       btn.dataset.bound = 'true';
 
       btn.addEventListener('click', () => {
-        const targetId = btn.getAttribute('data-target');
-        const container = document.getElementById(targetId);
-        if (!container) return;
-        const svg = container.querySelector('svg');
-        if (!svg) return;
+        const svg = getDiagramSvg(btn);
+        if (!svg) {
+          console.warn('[Copy PNG] SVG element not found for card');
+          return;
+        }
 
         const originalText = btn.textContent;
         btn.textContent = 'Copying...';
@@ -615,11 +697,11 @@
       btn.dataset.bound = 'true';
 
       btn.addEventListener('click', () => {
-        const targetId = btn.getAttribute('data-target');
-        const container = document.getElementById(targetId);
-        if (!container) return;
-        const svg = container.querySelector('svg');
-        if (!svg) return;
+        const svg = getDiagramSvg(btn);
+        if (!svg) {
+          console.warn('[Save PNG] SVG element not found for card');
+          return;
+        }
 
         const originalText = btn.textContent;
         btn.textContent = 'Saving...';
@@ -652,21 +734,18 @@
       btn.dataset.bound = 'true';
 
       btn.addEventListener('click', () => {
-        const targetId = btn.getAttribute('data-target');
-        const container = document.getElementById(targetId);
-        if (container) {
-          const svg = container.querySelector('svg');
-          if (svg) {
-            const svgData = new XMLSerializer().serializeToString(svg);
-            vscode.postMessage({
-              command: 'saveSvg',
-              svg: svgData,
-              defaultName: `${targetId}.svg`
-            });
-            const orig = btn.textContent;
-            btn.textContent = 'Saved!';
-            setTimeout(() => { btn.textContent = orig; }, 1500);
-          }
+        const targetId = btn.getAttribute('data-target') || 'diagram';
+        const svg = getDiagramSvg(btn);
+        if (svg) {
+          const svgData = new XMLSerializer().serializeToString(svg);
+          vscode.postMessage({
+            command: 'saveSvg',
+            svg: svgData,
+            defaultName: `${targetId}.svg`
+          });
+          const orig = btn.textContent;
+          btn.textContent = 'Saved!';
+          setTimeout(() => { btn.textContent = orig; }, 1500);
         }
       });
     });
