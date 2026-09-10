@@ -11,7 +11,7 @@ export function codeBlockPlugin(md: MarkdownIt, options?: { lineNumbers?: boolea
     const code = token.content;
 
     // Special diagram types handled elsewhere
-    if (lang === 'mermaid' || lang === 'plantuml' || lang === 'puml') {
+    if (lang === 'mermaid' || lang === 'plantuml' || lang === 'puml' || lang === 'math' || lang === 'latex' || lang === 'katex') {
       return token.content;
     }
 

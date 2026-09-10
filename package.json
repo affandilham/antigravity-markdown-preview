@@ -102,6 +102,7 @@
     "install-extension": "node scripts/install-local.js"
   },
   "devDependencies": {
+    "@types/katex": "^0.16.8",
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.85.0",
     "esbuild": "^0.21.5",
@@ -112,6 +113,7 @@
     "@types/markdown-it": "^14.1.1",
     "@types/pako": "^2.0.3",
     "highlight.js": "^11.9.0",
+    "katex": "^0.18.7",
     "markdown-it": "^14.1.0",
     "pako": "^2.1.0"
   }

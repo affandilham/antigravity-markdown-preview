@@ -1556,3 +1556,34 @@ body:not([data-vscode-theme-kind*="dark"]) .diagram-modal-hint {
   border-color: #d0d7de;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
+
+/* ==========================================================================
+   KaTeX Math Styling
+   ========================================================================== */
+.katex-block {
+  display: block;
+  margin: 1.2em 0;
+  padding: 8px 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-align: center;
+}
+
+.katex-block .katex-display {
+  margin: 0;
+  text-align: center;
+}
+
+.katex-inline {
+  padding: 0 2px;
+}
+
+.katex-error {
+  color: #cf222e;
+  background-color: rgba(207, 34, 46, 0.08);
+  border: 1px dashed rgba(207, 34, 46, 0.3);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.9em;
+}

@@ -297,6 +297,7 @@ export class MarkdownPreviewPanel {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(title)}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <style>
     :root {
       --bg: #ffffff;
@@ -345,6 +346,7 @@ export class MarkdownPreviewPanel {
     const webview = this._panel.webview;
     const mediaUri = vscode.Uri.joinPath(this._extensionUri, 'media');
 
+    const katexCssUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaUri, 'vendor', 'katex', 'katex.min.css'));
     const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaUri, 'preview.css'));
     const jsUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaUri, 'preview.js'));
     const mermaidUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaUri, 'vendor', 'mermaid.min.js'));
@@ -370,6 +372,7 @@ export class MarkdownPreviewPanel {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} https: http: data: blob:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' ${webview.cspSource}; frame-src https: http:; font-src ${webview.cspSource} data:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Preview ${escapeHtml(title)}</title>
+  <link rel="stylesheet" href="${katexCssUri}">
   <link rel="stylesheet" href="${cssUri}">
 </head>
 <body class="antigravity-preview-body" data-initial-zoom="${savedZoom}">

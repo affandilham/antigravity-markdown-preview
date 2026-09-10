@@ -10,6 +10,7 @@ import { tablePlugin } from './tablePlugin';
 import { sourceMapPlugin } from './sourceMapPlugin';
 import { frontmatterPlugin } from './frontmatterPlugin';
 import { taskListPlugin } from './taskListPlugin';
+import { mathPlugin } from './mathPlugin';
 
 export interface MarkdownEngineConfig {
   plantumlServer?: string;
@@ -50,6 +51,7 @@ export class MarkdownEngine {
     this.md.use(embedPlugin);
     this.md.use(tocPlugin);
     this.md.use(tablePlugin);
+    this.md.use(mathPlugin);
   }
 
   private setupHorizontalRule(): void {
