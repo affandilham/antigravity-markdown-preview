@@ -352,7 +352,120 @@
   }
 
   // Bind copy buttons and interactions
+    // --------------------------------------------------------------------------
+  // Bracket Matching / Bracket Pair Indicator in Code Blocks
+  // --------------------------------------------------------------------------
+  const BRACKET_PAIRS = { '{': '}', '(': ')', '[': ']', '}': '{', ')': '(', ']': '[' };
+  const BRACKET_OPENINGS = new Set(['{', '(', '[']);
+
+  function initBracketMatching() {
+    document.querySelectorAll('.antigravity-code-block pre code').forEach((codeEl) => {
+      if (codeEl.dataset.bracketsBound) return;
+      codeEl.dataset.bracketsBound = 'true';
+
+      const walker = document.createTreeWalker(codeEl, NodeFilter.SHOW_TEXT, null);
+      const textNodes = [];
+      let node;
+      while ((node = walker.nextNode())) {
+        if (/[{}()[\]]/.test(node.nodeValue)) {
+          textNodes.push(node);
+        }
+      }
+
+      for (let i = 0; i < textNodes.length; i++) {
+        const textNode = textNodes[i];
+        const text = textNode.nodeValue;
+        const parts = text.split(/([{}()[\]])/);
+        if (parts.length <= 1) continue;
+
+        const frag = document.createDocumentFragment();
+        for (let j = 0; j < parts.length; j++) {
+          const part = parts[j];
+          if (BRACKET_PAIRS[part]) {
+            const span = document.createElement('span');
+            span.className = 'code-bracket';
+            span.textContent = part;
+            frag.appendChild(span);
+          } else if (part.length > 0) {
+            frag.appendChild(document.createTextNode(part));
+          }
+        }
+        textNode.parentNode.replaceChild(frag, textNode);
+      }
+    });
+  }
+
+  // Delegated click handler for bracket matching
+  document.addEventListener('click', (e) => {
+    const bracketEl = e.target.closest('.code-bracket');
+
+    if (!bracketEl) {
+      document.querySelectorAll('.code-bracket.bracket-active, .code-bracket.bracket-match').forEach((el) => {
+        el.classList.remove('bracket-active', 'bracket-match');
+      });
+      return;
+    }
+
+    const codeEl = bracketEl.closest('pre code');
+    if (!codeEl) return;
+
+    if (bracketEl.classList.contains('bracket-active')) {
+      document.querySelectorAll('.code-bracket.bracket-active, .code-bracket.bracket-match').forEach((el) => {
+        el.classList.remove('bracket-active', 'bracket-match');
+      });
+      return;
+    }
+
+    document.querySelectorAll('.code-bracket.bracket-active, .code-bracket.bracket-match').forEach((el) => {
+      el.classList.remove('bracket-active', 'bracket-match');
+    });
+
+    const allBrackets = Array.from(codeEl.querySelectorAll('.code-bracket'));
+    const targetIdx = allBrackets.indexOf(bracketEl);
+    if (targetIdx === -1) return;
+
+    const char = bracketEl.textContent.trim();
+    const isOpening = BRACKET_OPENINGS.has(char);
+    const matchChar = BRACKET_PAIRS[char];
+    if (!matchChar) return;
+
+    let matchIdx = -1;
+    let depth = 0;
+
+    if (isOpening) {
+      for (let i = targetIdx; i < allBrackets.length; i++) {
+        const c = allBrackets[i].textContent.trim();
+        if (c === char) depth++;
+        else if (c === matchChar) {
+          depth--;
+          if (depth === 0) {
+            matchIdx = i;
+            break;
+          }
+        }
+      }
+    } else {
+      for (let i = targetIdx; i >= 0; i--) {
+        const c = allBrackets[i].textContent.trim();
+        if (c === char) depth++;
+        else if (c === matchChar) {
+          depth--;
+          if (depth === 0) {
+            matchIdx = i;
+            break;
+          }
+        }
+      }
+    }
+
+    bracketEl.classList.add('bracket-active');
+    if (matchIdx !== -1) {
+      allBrackets[matchIdx].classList.add('bracket-match');
+    }
+  });
+
   function bindInteractions() {
+    initBracketMatching();
     // 1. Copy code
     document.querySelectorAll('.copy-code-btn').forEach((btn) => {
       if (btn.dataset.bound) return;

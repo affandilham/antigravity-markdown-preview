@@ -1701,3 +1701,42 @@ body:not([data-vscode-theme-kind*="dark"]) .diagram-modal-hint {
 .code-tab-panel > p {
   padding: 0 16px;
 }
+
+/* ==========================================================================
+   Code Block Bracket Matching Indicator
+   ========================================================================== */
+.code-bracket {
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s ease;
+  position: relative;
+  display: inline-block;
+  padding: 0 1px;
+}
+
+.code-bracket:hover {
+  outline: 1px dashed var(--vscode-editorBracketMatch-border, rgba(56, 139, 253, 0.6));
+  background-color: rgba(56, 139, 253, 0.12);
+}
+
+.code-bracket.bracket-active,
+.code-bracket.bracket-match {
+  background-color: var(--vscode-editorBracketMatch-background, rgba(56, 139, 253, 0.25));
+  outline: 1.5px solid var(--vscode-button-background, #388bfd);
+  font-weight: 700;
+  color: var(--vscode-editorBracketHighlight-foreground1, inherit) !important;
+  box-shadow: 0 0 6px rgba(56, 139, 253, 0.35);
+  animation: bracketPulse 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 2;
+}
+
+@keyframes bracketPulse {
+  0% {
+    transform: scale(1.3);
+    outline-width: 2px;
+  }
+  100% {
+    transform: scale(1);
+    outline-width: 1.5px;
+  }
+}
