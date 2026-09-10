@@ -16,7 +16,7 @@ execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
 
 // 2. Package VSIX
 console.log(`📦 Generating ${vsixFileName}...`);
-execSync(`npx --yes @vscode/vsce package --no-git-tag-version --no-update-package-json -o "${vsixPath}"`, {
+execSync(`npx --yes @vscode/vsce package --no-git-tag-version --no-update-package-json --no-dependencies --allow-missing-repository --skip-license -o "${vsixPath}"`, {
   cwd: rootDir,
   stdio: 'inherit'
 });

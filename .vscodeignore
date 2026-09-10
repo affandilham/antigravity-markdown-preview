@@ -1,8 +1,12 @@
 .vscode/**
 .vscode-test/**
 src/**
+out/**
+node_modules/**
 scripts/**
+dist/test-engine.js
 .gitignore
 tsconfig.json
 esbuild.config.js
 *.vsix
+*.log
