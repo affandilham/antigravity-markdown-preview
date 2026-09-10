@@ -1183,6 +1183,9 @@
   // Handle window resize to adapt width dynamically
   window.addEventListener('resize', () => {
     updateContentWidth();
+    if (isModalOpen) {
+      fitModalDiagram();
+    }
   });
   if (zoomLevelEl) {
     zoomLevelEl.textContent = `${Math.round(currentZoom * 100)}%`;
@@ -1259,25 +1262,31 @@
 
   function fitModalDiagram() {
     if (!modalViewport || !modalCanvas) return;
-    const padding = 60;
-    const vw = Math.max(160, modalViewport.clientWidth - padding);
-    const vh = Math.max(120, modalViewport.clientHeight - padding);
+    const vWidth = modalViewport.clientWidth || window.innerWidth;
+    const vHeight = modalViewport.clientHeight || (window.innerHeight - 48);
 
-    const scaleX = vw / Math.max(1, currentDiagramWidth);
-    const scaleY = vh / Math.max(1, currentDiagramHeight);
-    modalScale = Math.min(scaleX, scaleY, 2.5);
-    modalScale = Math.max(0.1, Math.min(10.0, modalScale));
+    const padding = 80;
+    const availW = Math.max(120, vWidth - padding);
+    const availH = Math.max(100, vHeight - padding);
 
-    modalTranslate.x = (modalViewport.clientWidth - currentDiagramWidth * modalScale) / 2;
-    modalTranslate.y = (modalViewport.clientHeight - currentDiagramHeight * modalScale) / 2;
+    const scaleX = availW / Math.max(1, currentDiagramWidth);
+    const scaleY = availH / Math.max(1, currentDiagramHeight);
+    modalScale = Math.min(scaleX, scaleY, 2.0);
+    modalScale = Math.max(0.08, Math.min(10.0, modalScale));
+
+    modalTranslate.x = Math.round((vWidth - currentDiagramWidth * modalScale) / 2);
+    modalTranslate.y = Math.round((vHeight - currentDiagramHeight * modalScale) / 2);
     applyModalTransform();
   }
 
   function resetModalZoom() {
     if (!modalViewport) return;
+    const vWidth = modalViewport.clientWidth || window.innerWidth;
+    const vHeight = modalViewport.clientHeight || (window.innerHeight - 48);
+
     modalScale = 1.0;
-    modalTranslate.x = (modalViewport.clientWidth - currentDiagramWidth) / 2;
-    modalTranslate.y = (modalViewport.clientHeight - currentDiagramHeight) / 2;
+    modalTranslate.x = Math.round((vWidth - currentDiagramWidth) / 2);
+    modalTranslate.y = Math.round((vHeight - currentDiagramHeight) / 2);
     applyModalTransform();
   }
 
@@ -1367,7 +1376,16 @@
     modalOverlay.classList.add('active');
     modalOverlay.setAttribute('aria-hidden', 'false');
 
+    // Force reflow after display change from display:none to display:flex
+    void modalOverlay.offsetHeight;
     fitModalDiagram();
+
+    // Re-fit in next frame to ensure layout geometry is 100% computed
+    requestAnimationFrame(() => {
+      if (isModalOpen) {
+        fitModalDiagram();
+      }
+    });
   }
 
   function closeDiagramModal() {

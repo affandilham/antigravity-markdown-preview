@@ -1473,9 +1473,6 @@ body:not([data-vscode-theme-kind*="dark"]) .modal-close-btn:hover {
   height: 100%;
   overflow: hidden;
   cursor: grab;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   user-select: none;
   touch-action: none;
   background-color: #0d1117;
@@ -1494,8 +1491,11 @@ body:not([data-vscode-theme-kind*="dark"]) .diagram-modal-viewport {
 }
 
 .diagram-modal-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
   transform-origin: 0 0;
-  display: inline-block;
+  display: block;
   will-change: transform;
   contain: layout paint;
   backface-visibility: hidden;
