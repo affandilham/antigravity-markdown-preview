@@ -3,7 +3,7 @@
   "displayName": "Antigravity Markdown Preview",
   "description": "Rich Markdown preview for Antigravity IDE with GitHub alerts, mermaid, plantuml, code blocks, collapsible sections, TOC, and rich embeds.",
   "version": "0.1.0",
-  "publisher": "mlkyjuicee",
+  "publisher": "affandilham",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -116,5 +116,13 @@
     "katex": "^0.18.7",
     "markdown-it": "^14.1.0",
     "pako": "^2.1.0"
+  },
+  "author": {
+    "name": "Affand Ilham",
+    "url": "https://github.com/affandilham"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/affandilham/antigravity-markdown-preview"
   }
 }

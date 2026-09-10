@@ -4,12 +4,21 @@ A rich, aesthetic, high-performance Markdown preview extension designed specific
 
 ![Antigravity Preview](https://img.shields.io/badge/Antigravity-Ready-38bdf8?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue?style=flat-square)
+[![Developer](https://img.shields.io/badge/Developer-Affand%20Ilham-10b981?style=flat-square&logo=github)](https://github.com/affandilham)
+[![Telegram](https://img.shields.io/badge/Telegram-@affandilham-229ED9?style=flat-square&logo=telegram)](https://t.me/affandilham)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ---
 
 ## Features
 
+- **In-Page Search (`Cmd + F` Quick Find)**: Floating search bar with live text highlighting, match counter (`X/Y`), auto-scroll navigation (`Enter` / `Shift + Enter`), and clean `Esc` dismiss.
+- **Interactive Task Lists (2-Way Sync)**: Check and uncheck `- [ ]` / `- [x]` items directly in the preview, automatically updating the source markdown file in real-time.
+- **Copy Diagram as PNG to Clipboard**: One-click rasterization of Mermaid and PlantUML diagrams into crisp 2x retina PNG directly into your OS system clipboard (ready to `Cmd + V` into Slack, Figma, or Notion).
+- **Fullscreen Diagram Lightbox Modal**: Click the `⛶` button on any diagram to open a full-viewport modal with mouse-wheel zoom, drag-to-pan, and keyboard controls (`+`, `-`, `0`, `f`, `Esc`).
+- **KaTeX / LaTeX Math Support**: Instant rendering of inline math (`$E = mc^2$`), block math (`$$`), and fenced math blocks with currency protection (`$10-$20`).
+- **Tabbed Code Blocks**: Clean multi-language tabbed panels (`=== Tab Title`) with smooth switching and isolated copy buttons.
+- **3D Skeuomorphic Keyboard Keys (`<kbd>`)**: Tactile, elevated keyboard keycap design with drop shadows, bevels, and pressed-down click effect.
 - **GitHub-Style Alerts**: Native support for `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, and `> [!CAUTION]` with custom glowing SVG accents.
 - **Rich Code Blocks**: Syntax highlighting via `highlight.js` (190+ languages), line numbering, macOS window dots, language badges, and single-click copy buttons.
 - **Collapsible Sections**: Native `<details><summary>` and custom block syntax `::: details Title ... :::`.
@@ -81,6 +90,16 @@ npm run build
 
 ---
 
+## 👨‍💻 Author & Maintainer
+
+**Affand Ilham**
+- 🐙 GitHub: [@affandilham](https://github.com/affandilham)
+- ✈️ Telegram: [@affandilham](https://t.me/affandilham)
+
+Developed with ❤️ for high-performance documentation and engineering workflows on Antigravity IDE.
+
+---
+
 ## License
 
-Personal use / MIT.
+MIT License © 2026 Affand Ilham.
