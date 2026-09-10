@@ -57,11 +57,14 @@ export function encodePlantUML(pumlText: string): string {
   return encode64(deflated);
 }
 
-export function getPlantUmlSvgUrl(pumlText: string, serverUrl = 'https://kroki.io'): string {
+export function getPlantUmlSvgUrl(pumlText: string, serverUrl = 'https://www.plantuml.com/plantuml'): string {
   const encoded = encodePlantUML(pumlText);
-  if (serverUrl.includes('kroki.io')) {
-    return `https://kroki.io/plantuml/svg/${encoded}`;
-  }
   const cleanServer = serverUrl.replace(/\/+$/, '');
-  return `${cleanServer}/svg/~1${encoded}`;
+  return `${cleanServer}/svg/${encoded}`;
+}
+
+export function getPlantUmlPngUrl(pumlText: string, serverUrl = 'https://www.plantuml.com/plantuml'): string {
+  const encoded = encodePlantUML(pumlText);
+  const cleanServer = serverUrl.replace(/\/+$/, '');
+  return `${cleanServer}/png/${encoded}`;
 }

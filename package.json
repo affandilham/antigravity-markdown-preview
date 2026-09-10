@@ -82,7 +82,7 @@
         },
         "antigravity.markdownPreview.plantumlServer": {
           "type": "string",
-          "default": "https://kroki.io",
+          "default": "https://www.plantuml.com/plantuml",
           "description": "PlantUML rendering server URL (e.g., https://kroki.io or https://www.plantuml.com/plantuml)."
         },
         "antigravity.markdownPreview.codeLineNumbers": {

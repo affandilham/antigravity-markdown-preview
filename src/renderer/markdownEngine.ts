@@ -45,7 +45,7 @@ export class MarkdownEngine {
     this.md.use(collapsiblePlugin);
     this.md.use(mermaidPlugin);
     this.md.use(plantumlPlugin, {
-      serverUrl: this.config.plantumlServer || 'https://kroki.io'
+      serverUrl: this.config.plantumlServer || 'https://www.plantuml.com/plantuml'
     });
     this.md.use(embedPlugin);
     this.md.use(tocPlugin);

@@ -113,11 +113,15 @@ export class MarkdownPreviewPanel {
           case 'copyImageToClipboard':
             if (message.dataUrl) {
               await this.copyImageToClipboard(message.dataUrl);
+            } else if (message.imageUrl) {
+              await this.copyImageUrlToClipboard(message.imageUrl);
             }
             break;
           case 'saveImage':
             if (message.data) {
               await this.saveImageFile(message.data, message.defaultName);
+            } else if (message.imageUrl) {
+              await this.saveImageUrlFile(message.imageUrl, message.defaultName);
             }
             break;
           case 'saveSvg':
@@ -502,38 +506,86 @@ export class MarkdownPreviewPanel {
     await vscode.workspace.applyEdit(edit);
   }
 
+  private async copyImageUrlToClipboard(imageUrl: string): Promise<void> {
+    try {
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      await this.writeBufferToClipboard(buffer);
+      vscode.window.setStatusBarMessage('$(check) Diagram PNG copied to clipboard!', 2500);
+    } catch (err) {
+      vscode.window.showErrorMessage(`Failed to copy image to clipboard: ${err}`);
+    }
+  }
+
+  private async saveImageUrlFile(imageUrl: string, defaultName: string = 'diagram.png'): Promise<void> {
+    try {
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(this._document.uri);
+      const defaultUri = vscode.Uri.joinPath(
+        workspaceFolder?.uri || vscode.workspace.workspaceFolders?.[0]?.uri || vscode.Uri.file('/tmp'),
+        defaultName
+      );
+
+      const targetUri = await vscode.window.showSaveDialog({
+        defaultUri,
+        filters: {
+          Images: ['png']
+        }
+      });
+
+      if (targetUri) {
+        await vscode.workspace.fs.writeFile(targetUri, buffer);
+        vscode.window.showInformationMessage(`Saved diagram to ${targetUri.fsPath}`);
+      }
+    } catch (err) {
+      vscode.window.showErrorMessage(`Failed to save image: ${err}`);
+    }
+  }
+
   private async copyImageToClipboard(dataUrl: string): Promise<void> {
     try {
       const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
       const buffer = Buffer.from(base64Data, 'base64');
-
-      if (process.platform === 'darwin') {
-        const tempPath = path.join(os.tmpdir(), `antigravity-diagram-${Date.now()}.png`);
-        await fs.promises.writeFile(tempPath, buffer);
-        try {
-          cp.execSync(`osascript -e 'set the clipboard to (read (POSIX file "${tempPath}") as «class PNGf»)'`);
-        } finally {
-          fs.promises.unlink(tempPath).catch(() => {});
-        }
-      } else if (process.platform === 'win32') {
-        const tempPath = path.join(os.tmpdir(), `antigravity-diagram-${Date.now()}.png`);
-        await fs.promises.writeFile(tempPath, buffer);
-        try {
-          cp.execSync(`powershell -Command "Set-Clipboard -Path '${tempPath}'"`);
-        } finally {
-          fs.promises.unlink(tempPath).catch(() => {});
-        }
-      } else {
-        try {
-          const child = cp.spawn('xclip', ['-selection', 'clipboard', '-t', 'image/png']);
-          child.stdin.write(buffer);
-          child.stdin.end();
-        } catch (_) {}
-      }
-
+      await this.writeBufferToClipboard(buffer);
       vscode.window.setStatusBarMessage('$(check) Diagram PNG copied to clipboard!', 2500);
     } catch (err) {
       vscode.window.showErrorMessage(`Failed to copy image to clipboard: ${err}`);
+    }
+  }
+
+  private async writeBufferToClipboard(buffer: Buffer): Promise<void> {
+    if (process.platform === 'darwin') {
+      const tempPath = path.join(os.tmpdir(), `antigravity-diagram-${Date.now()}.png`);
+      await fs.promises.writeFile(tempPath, buffer);
+      try {
+        cp.execSync(`osascript -e 'set the clipboard to (read (POSIX file "${tempPath}") as «class PNGf»)'`);
+      } finally {
+        fs.promises.unlink(tempPath).catch(() => {});
+      }
+    } else if (process.platform === 'win32') {
+      const tempPath = path.join(os.tmpdir(), `antigravity-diagram-${Date.now()}.png`);
+      await fs.promises.writeFile(tempPath, buffer);
+      try {
+        cp.execSync(`powershell -Command "Set-Clipboard -Path '${tempPath}'"`);
+      } finally {
+        fs.promises.unlink(tempPath).catch(() => {});
+      }
+    } else {
+      try {
+        const child = cp.spawn('xclip', ['-selection', 'clipboard', '-t', 'image/png']);
+        child.stdin.write(buffer);
+        child.stdin.end();
+      } catch (_) {}
     }
   }
 

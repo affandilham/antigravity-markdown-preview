@@ -2,7 +2,7 @@ import MarkdownIt from 'markdown-it';
 import { getPlantUmlSvgUrl } from '../utils/plantumlEncoder';
 
 export function plantumlPlugin(md: MarkdownIt, options?: { serverUrl?: string }): void {
-  const serverUrl = options?.serverUrl || 'https://kroki.io';
+  const serverUrl = options?.serverUrl || 'https://www.plantuml.com/plantuml';
   const defaultFence = md.renderer.rules.fence;
 
   md.renderer.rules.fence = (tokens, idx, opt, env, self) => {
