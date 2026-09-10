@@ -377,6 +377,29 @@
       });
     });
 
+        // 3. Tabbed code blocks switcher
+    document.querySelectorAll('.code-tab-btn').forEach((btn) => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = 'true';
+
+      btn.addEventListener('click', () => {
+        const container = btn.closest('.code-tab-container');
+        if (!container) return;
+
+        const targetIndex = btn.getAttribute('data-tab');
+        if (targetIndex === null) return;
+
+        container.querySelectorAll('.code-tab-btn').forEach((b) => b.classList.remove('active'));
+        container.querySelectorAll('.code-tab-panel').forEach((p) => p.classList.remove('active'));
+
+        btn.classList.add('active');
+        const targetPanel = container.querySelector(`.code-tab-panel[data-tab="${targetIndex}"]`);
+        if (targetPanel) {
+          targetPanel.classList.add('active');
+        }
+      });
+    });
+
     // 2. Copy diagram code
     document.querySelectorAll('.copy-diagram-code-btn').forEach((btn) => {
       if (btn.dataset.bound) return;

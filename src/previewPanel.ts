@@ -319,6 +319,14 @@ export class MarkdownPreviewPanel {
       color: var(--fg);
       background-color: var(--bg);
       max-width: 860px;
+    }
+    .code-tab-container { margin: 20px 0; border-radius: 8px; border: 1px solid var(--border); overflow: hidden; background: var(--bg); }
+    .code-tab-headers { display: flex; background: rgba(128,128,128,0.06); border-bottom: 1px solid var(--border); padding: 0 6px; }
+    .code-tab-btn { padding: 8px 14px; font-size: 12.5px; font-weight: 500; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--fg); cursor: pointer; opacity: 0.7; }
+    .code-tab-btn.active { border-bottom-color: var(--accent); color: var(--accent); opacity: 1; font-weight: 600; }
+    .code-tab-panel { display: none; }
+    .code-tab-panel.active { display: block; }
+    .code-tab-panel > .antigravity-code-block { margin: 0 !important; border: none !important; }
       margin: 0 auto;
       padding: 48px 24px;
     }
@@ -335,6 +343,20 @@ export class MarkdownPreviewPanel {
   <article class="markdown-body">
     ${html}
   </article>
+<script>
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.code-tab-btn');
+    if (!btn) return;
+    var container = btn.closest('.code-tab-container');
+    if (!container) return;
+    var idx = btn.getAttribute('data-tab');
+    container.querySelectorAll('.code-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    container.querySelectorAll('.code-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    var target = container.querySelector('.code-tab-panel[data-tab="' + idx + '"]');
+    if (target) target.classList.add('active');
+  });
+</script>
 </body>
 </html>`;
 
@@ -504,6 +526,20 @@ export class MarkdownPreviewPanel {
 
   <script nonce="${nonce}" src="${mermaidUri}" defer></script>
   <script nonce="${nonce}" src="${jsUri}" defer></script>
+<script>
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.code-tab-btn');
+    if (!btn) return;
+    var container = btn.closest('.code-tab-container');
+    if (!container) return;
+    var idx = btn.getAttribute('data-tab');
+    container.querySelectorAll('.code-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    container.querySelectorAll('.code-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    var target = container.querySelector('.code-tab-panel[data-tab="' + idx + '"]');
+    if (target) target.classList.add('active');
+  });
+</script>
 </body>
 </html>`;
   }

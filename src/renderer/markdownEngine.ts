@@ -9,6 +9,7 @@ import { tocPlugin, extractHeadings, TocItem } from './tocPlugin';
 import { tablePlugin } from './tablePlugin';
 import { sourceMapPlugin } from './sourceMapPlugin';
 import { frontmatterPlugin } from './frontmatterPlugin';
+import { codeTabPlugin } from './codeTabPlugin';
 import { taskListPlugin } from './taskListPlugin';
 import { mathPlugin } from './mathPlugin';
 
@@ -38,6 +39,7 @@ export class MarkdownEngine {
 
     // 2. Specialized feature plugins
     this.md.use(frontmatterPlugin);
+    this.md.use(codeTabPlugin);
     this.md.use(taskListPlugin);
     this.md.use(alertPlugin);
     this.md.use(codeBlockPlugin, {
