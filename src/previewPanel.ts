@@ -110,6 +110,9 @@ export class MarkdownPreviewPanel {
           case 'exportHtml':
             await this.exportStandaloneHtml();
             break;
+          case 'print':
+            await this.printDocument(message.html);
+            break;
           case 'copyImageToClipboard':
             if (message.dataUrl) {
               await this.copyImageToClipboard(message.dataUrl);
@@ -362,6 +365,109 @@ export class MarkdownPreviewPanel {
 
     await vscode.workspace.fs.writeFile(targetUri, Buffer.from(fullHtml, 'utf8'));
     vscode.window.showInformationMessage(`Exported Markdown to ${targetUri.fsPath}`);
+  }
+
+  private async printDocument(renderedHtml?: string): Promise<void> {
+    const rawTitle = getFileName(this._document.fileName);
+    const title = rawTitle.replace(/\.md$/i, "");
+    const content = renderedHtml || this._markdownEngine.render(this._document.getText()).html;
+
+    const printHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Print - ${escapeHtml(title)}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #1f2328;
+      --border: #d0d7de;
+      --accent: #0969da;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.65;
+      color: #1f2328;
+      background-color: #ffffff;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      color: #1f2328;
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+    h1 { font-size: 2em; border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; margin-bottom: 16px; }
+    h2 { font-size: 1.5em; border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; margin-top: 28px; margin-bottom: 14px; }
+    h3 { font-size: 1.25em; margin-top: 22px; margin-bottom: 12px; }
+    p, ul, ol { margin: 12px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 13.5px; page-break-inside: avoid; break-inside: avoid; }
+    th, td { border: 1px solid #d0d7de; padding: 8px 12px; text-align: left; }
+    th { background: #f6f8fa; font-weight: 600; }
+    blockquote { border-left: 4px solid #0969da; margin: 16px 0; padding: 6px 16px; color: #57606a; background: #f6f8fa; border-radius: 0 4px 4px 0; }
+    pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 14px; overflow-x: auto; font-size: 13px; page-break-inside: avoid; break-inside: avoid; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 85%; }
+    pre code { font-size: 13px; background: transparent; padding: 0; }
+    img, svg { max-width: 100%; height: auto; page-break-inside: avoid; break-inside: avoid; }
+    .diagram-wrapper, .mermaid-container, .plantuml-container { page-break-inside: avoid; break-inside: avoid; margin: 20px 0; text-align: center; }
+    .diagram-actions, .copy-code-btn, .table-toolbar, .code-tab-headers, .preview-toolbar, .search-overlay { display: none !important; }
+    .code-tab-panel { display: block !important; margin-bottom: 12px; }
+    kbd {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.85em;
+      font-weight: 600;
+      padding: 2px 6px;
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-bottom: 2px solid #afb8c1;
+      border-radius: 4px;
+    }
+    mark.ag-search-match { background: transparent !important; color: inherit !important; box-shadow: none !important; }
+    @media print {
+      @page { margin: 15mm 15mm; size: auto; }
+      body { padding: 0; max-width: 100%; font-size: 11pt; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <article class="markdown-body">
+    ${content}
+  </article>
+  <script>
+    window.addEventListener("load", function() {
+      setTimeout(function() {
+        window.print();
+      }, 350);
+    });
+  </script>
+</body>
+</html>`;
+
+    const tmpFile = path.join(os.tmpdir(), `antigravity-print-${Date.now()}.html`);
+    await fs.promises.writeFile(tmpFile, printHtml, "utf8");
+
+    if (process.platform === "darwin") {
+      cp.exec(`open "${tmpFile}"`);
+    } else if (process.platform === "win32") {
+      cp.exec(`start "" "${tmpFile}"`);
+    } else {
+      cp.exec(`xdg-open "${tmpFile}"`);
+    }
+
+    vscode.window.setStatusBarMessage("$(check) Opening Print dialog in browser...", 3500);
+
+    setTimeout(() => {
+      try {
+        if (fs.existsSync(tmpFile)) {
+          fs.unlinkSync(tmpFile);
+        }
+      } catch {}
+    }, 120000);
   }
 
   private _getHtmlForWebview(initialHtml: string, headings: TocItem[], title: string): string {

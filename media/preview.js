@@ -1303,7 +1303,11 @@
   });
 
   btnPrint?.addEventListener('click', () => {
-    window.print();
+    const root = document.getElementById('markdownRoot');
+    vscode.postMessage({
+      command: 'print',
+      html: root ? root.innerHTML : ''
+    });
   });
 
   // Zoom Controls Event Listeners
