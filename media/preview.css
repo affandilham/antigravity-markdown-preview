@@ -1307,9 +1307,9 @@ tr:hover td {
 .diagram-modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(13, 17, 23, 0.84);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background-color: rgba(13, 17, 23, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   z-index: 99999;
   display: flex;
   flex-direction: column;
@@ -1473,6 +1473,16 @@ body:not([data-vscode-theme-kind*="dark"]) .modal-close-btn:hover {
   align-items: center;
   justify-content: center;
   user-select: none;
+  touch-action: none;
+  background-color: #0d1117;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.13) 1.25px, transparent 1.25px);
+  background-size: 24px 24px;
+}
+
+body:not([data-vscode-theme-kind*="dark"]) .diagram-modal-viewport {
+  background-color: #fbfbfb;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.12) 1.25px, transparent 1.25px);
+  background-size: 24px 24px;
 }
 
 .diagram-modal-viewport.dragging {

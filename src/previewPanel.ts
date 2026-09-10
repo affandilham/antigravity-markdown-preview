@@ -495,7 +495,7 @@ export class MarkdownPreviewPanel {
       <div class="diagram-modal-canvas" id="diagramModalCanvas"></div>
     </div>
     <div class="diagram-modal-hint">
-      <span>Scroll to Zoom · Drag to Pan · Esc to Close</span>
+      <span>Pinch / Scroll to Zoom · Two-Finger / Drag to Pan · Esc to Close</span>
     </div>
   </div>
 
