@@ -4,7 +4,7 @@ A rich, aesthetic, high-performance Markdown preview extension designed specific
 
 ![Antigravity Preview](https://img.shields.io/badge/Antigravity-Ready-38bdf8?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue?style=flat-square)
-[![Developer](https://img.shields.io/badge/Developer-Affand%20Ilham-10b981?style=flat-square&logo=github)](https://github.com/affandilham)
+[![Developer](https://img.shields.io/badge/Developer-Mlkyjuicee-10b981?style=flat-square&logo=github)](https://github.com/affandilham)
 [![Telegram](https://img.shields.io/badge/Telegram-@affandilham-229ED9?style=flat-square&logo=telegram)](https://t.me/affandilham)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
@@ -92,7 +92,7 @@ npm run build
 
 ## 👨‍💻 Author & Maintainer
 
-**Affand Ilham**
+**Mlkyjuicee**
 - 🐙 GitHub: [@affandilham](https://github.com/affandilham)
 - ✈️ Telegram: [@affandilham](https://t.me/affandilham)
 
@@ -102,4 +102,4 @@ Developed with ❤️ for high-performance documentation and engineering workflo
 
 ## License
 
-MIT License © 2026 Affand Ilham.
+MIT License © 2026 Mlkyjuicee.
