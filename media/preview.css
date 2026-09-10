@@ -941,8 +941,18 @@ tr:hover td {
   height: auto;
 }
 
-.diagram-body .mermaid > svg {
+/* Sequence diagrams scale comfortably across the card */
+.mermaid-type-sequence .diagram-body .mermaid > svg,
+.diagram-body .mermaid > svg[aria-roledescription="sequence"],
+.diagram-body .mermaid > svg.sequenceDiagram {
   min-width: min(100%, 650px);
+}
+
+/* Flowcharts stay compact and balanced so they don't overpower the page */
+.mermaid-type-flowchart .diagram-body .mermaid > svg,
+.diagram-body .mermaid > svg[aria-roledescription*="flowchart"] {
+  max-width: 480px;
+  width: 100%;
 }
 
 .plantuml-svg-img {
