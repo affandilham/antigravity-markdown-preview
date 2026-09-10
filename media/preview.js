@@ -432,7 +432,7 @@
             ctx.drawImage(img, 0, 0, width, height);
             const dataUrl = canvas.toDataURL('image/png');
             URL.revokeObjectURL(svgUrl);
-            callback(null, dataUrl, svgString);
+            callback(null, dataUrl, canvas, svgString);
           } else {
             URL.revokeObjectURL(svgUrl);
             callback(new Error('Canvas context not available'));
@@ -453,6 +453,161 @@
       callback(err);
     }
   }
+
+    // 2b. Copy PNG for Mermaid
+    document.querySelectorAll('.copy-png-btn').forEach((btn) => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = 'true';
+
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-target');
+        const container = document.getElementById(targetId);
+        if (!container) return;
+        const svg = container.querySelector('svg');
+        if (!svg) return;
+
+        const originalText = btn.textContent;
+        btn.textContent = 'Copying...';
+        btn.disabled = true;
+
+        convertSvgToPngDataUrl(svg, async (err, dataUrl, canvas) => {
+          if (err || !dataUrl) {
+            btn.textContent = 'Failed';
+            setTimeout(() => {
+              btn.textContent = originalText;
+              btn.disabled = false;
+            }, 2000);
+            return;
+          }
+
+          let copiedViaNavigator = false;
+          if (canvas && canvas.toBlob && navigator.clipboard && window.ClipboardItem) {
+            try {
+              await new Promise((resolve, reject) => {
+                canvas.toBlob(async (blob) => {
+                  if (!blob) return reject(new Error('No blob'));
+                  try {
+                    await navigator.clipboard.write([
+                      new ClipboardItem({ 'image/png': blob })
+                    ]);
+                    copiedViaNavigator = true;
+                    resolve();
+                  } catch (clipErr) {
+                    reject(clipErr);
+                  }
+                }, 'image/png');
+              });
+            } catch (_) {
+              copiedViaNavigator = false;
+            }
+          }
+
+          if (!copiedViaNavigator) {
+            vscode.postMessage({
+              command: 'copyImageToClipboard',
+              dataUrl: dataUrl
+            });
+          }
+
+          btn.disabled = false;
+          btn.textContent = 'Copied PNG!';
+          btn.classList.add('copied');
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.classList.remove('copied');
+          }, 2000);
+        });
+      });
+    });
+
+    // 2c. Copy PNG for PlantUML
+    document.querySelectorAll('.copy-puml-png-btn').forEach((btn) => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = 'true';
+
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-target');
+        const img = document.getElementById(targetId);
+        if (!img) return;
+
+        const originalText = btn.textContent;
+        btn.textContent = 'Copying...';
+        btn.disabled = true;
+
+        const svgSrc = img.getAttribute('src') || '';
+        const pngSrc = svgSrc.replace('/plantuml/svg/', '/plantuml/png/');
+
+        const pumlImg = new Image();
+        pumlImg.crossOrigin = 'anonymous';
+        pumlImg.onload = async () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = pumlImg.naturalWidth || pumlImg.width || 800;
+            canvas.height = pumlImg.naturalHeight || pumlImg.height || 600;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.fillStyle = isDarkMode() ? '#0d1117' : '#ffffff';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(pumlImg, 0, 0);
+              const dataUrl = canvas.toDataURL('image/png');
+
+              let copiedViaNavigator = false;
+              if (canvas.toBlob && navigator.clipboard && window.ClipboardItem) {
+                try {
+                  await new Promise((resolve, reject) => {
+                    canvas.toBlob(async (blob) => {
+                      if (!blob) return reject(new Error('No blob'));
+                      try {
+                        await navigator.clipboard.write([
+                          new ClipboardItem({ 'image/png': blob })
+                        ]);
+                        copiedViaNavigator = true;
+                        resolve();
+                      } catch (clipErr) {
+                        reject(clipErr);
+                      }
+                    }, 'image/png');
+                  });
+                } catch (_) {
+                  copiedViaNavigator = false;
+                }
+              }
+
+              if (!copiedViaNavigator) {
+                vscode.postMessage({
+                  command: 'copyImageToClipboard',
+                  dataUrl: dataUrl
+                });
+              }
+
+              btn.disabled = false;
+              btn.textContent = 'Copied PNG!';
+              btn.classList.add('copied');
+              setTimeout(() => {
+                btn.textContent = originalText;
+                btn.classList.remove('copied');
+              }, 2000);
+            }
+          } catch (err) {
+            btn.textContent = 'Failed';
+            setTimeout(() => {
+              btn.textContent = originalText;
+              btn.disabled = false;
+            }, 2000);
+          }
+        };
+
+        pumlImg.onerror = () => {
+          btn.textContent = 'Failed';
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+          }, 2000);
+        };
+
+        pumlImg.src = pngSrc;
+      });
+    });
 
     // 3. Save PNG for Mermaid
     document.querySelectorAll('.export-png-btn').forEach((btn) => {

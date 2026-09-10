@@ -911,6 +911,11 @@ tr:hover td {
   background: var(--ag-surface-hover);
 }
 
+.diagram-btn.copied {
+  color: var(--alert-tip, #238636) !important;
+  border-color: var(--alert-tip, #238636) !important;
+}
+
 .diagram-body {
   padding: 20px;
   display: flex;

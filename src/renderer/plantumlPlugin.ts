@@ -29,6 +29,9 @@ export function plantumlPlugin(md: MarkdownIt, options?: { serverUrl?: string })
       <button class="diagram-btn copy-diagram-code-btn" data-code="${encodedCode}" title="Copy PlantUML Source" type="button">
         Copy
       </button>
+      <button class="diagram-btn copy-puml-png-btn" data-target="${diagramId}" title="Copy Diagram as PNG to Clipboard" type="button">
+        Copy PNG
+      </button>
       <button class="diagram-btn export-puml-png-btn" data-target="${diagramId}" title="Save as PNG Image" type="button">
         Save PNG
       </button>

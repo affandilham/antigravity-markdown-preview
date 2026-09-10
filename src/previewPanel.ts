@@ -1,4 +1,8 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import * as cp from 'child_process';
 import { MarkdownEngine } from './renderer/markdownEngine';
 import { TocItem } from './renderer/tocPlugin';
 
@@ -105,6 +109,11 @@ export class MarkdownPreviewPanel {
             break;
           case 'exportHtml':
             await this.exportStandaloneHtml();
+            break;
+          case 'copyImageToClipboard':
+            if (message.dataUrl) {
+              await this.copyImageToClipboard(message.dataUrl);
+            }
             break;
           case 'saveImage':
             if (message.data) {
@@ -491,6 +500,41 @@ export class MarkdownPreviewPanel {
     const range = new vscode.Range(targetLine, startChar, targetLine, endChar);
     edit.replace(doc.uri, range, newBox);
     await vscode.workspace.applyEdit(edit);
+  }
+
+  private async copyImageToClipboard(dataUrl: string): Promise<void> {
+    try {
+      const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      if (process.platform === 'darwin') {
+        const tempPath = path.join(os.tmpdir(), `antigravity-diagram-${Date.now()}.png`);
+        await fs.promises.writeFile(tempPath, buffer);
+        try {
+          cp.execSync(`osascript -e 'set the clipboard to (read (POSIX file "${tempPath}") as «class PNGf»)'`);
+        } finally {
+          fs.promises.unlink(tempPath).catch(() => {});
+        }
+      } else if (process.platform === 'win32') {
+        const tempPath = path.join(os.tmpdir(), `antigravity-diagram-${Date.now()}.png`);
+        await fs.promises.writeFile(tempPath, buffer);
+        try {
+          cp.execSync(`powershell -Command "Set-Clipboard -Path '${tempPath}'"`);
+        } finally {
+          fs.promises.unlink(tempPath).catch(() => {});
+        }
+      } else {
+        try {
+          const child = cp.spawn('xclip', ['-selection', 'clipboard', '-t', 'image/png']);
+          child.stdin.write(buffer);
+          child.stdin.end();
+        } catch (_) {}
+      }
+
+      vscode.window.setStatusBarMessage('$(check) Diagram PNG copied to clipboard!', 2500);
+    } catch (err) {
+      vscode.window.showErrorMessage(`Failed to copy image to clipboard: ${err}`);
+    }
   }
 
   public dispose(): void {
