@@ -116,6 +116,11 @@ export class MarkdownPreviewPanel {
               await this.saveSvgFile(message.svg, message.defaultName);
             }
             break;
+          case 'toggleTask':
+            if (typeof message.line === 'number') {
+              await this.toggleTaskAtLine(message.line, !!message.checked);
+            }
+            break;
           case 'openExternal':
             if (message.url) {
               await vscode.env.openExternal(vscode.Uri.parse(message.url));
@@ -445,6 +450,47 @@ export class MarkdownPreviewPanel {
   <script nonce="${nonce}" src="${jsUri}" defer></script>
 </body>
 </html>`;
+  }
+
+  private async toggleTaskAtLine(line: number, checked: boolean): Promise<void> {
+    const doc = this._document;
+    if (!doc || line < 0 || line >= doc.lineCount) return;
+
+    let targetLine = line;
+    let lineText = doc.lineAt(targetLine).text;
+    const taskBoxRegex = /^(\s*(?:[-*+]|\d+\.)\s*)\[([ xX])\]/;
+
+    if (!taskBoxRegex.test(lineText)) {
+      // Check adjacent lines +/- 2 in case of line shifts
+      for (const offset of [-1, 1, -2, 2]) {
+        const candidate = line + offset;
+        if (candidate >= 0 && candidate < doc.lineCount) {
+          const candText = doc.lineAt(candidate).text;
+          if (taskBoxRegex.test(candText)) {
+            targetLine = candidate;
+            lineText = candText;
+            break;
+          }
+        }
+      }
+    }
+
+    const match = lineText.match(taskBoxRegex);
+    if (!match) return;
+
+    const currentBox = match[2];
+    const isCurrentlyChecked = currentBox.toLowerCase() === 'x';
+    if (isCurrentlyChecked === checked) return;
+
+    const newBox = checked ? '[x]' : '[ ]';
+    const matchPrefix = match[1];
+    const startChar = matchPrefix.length;
+    const endChar = startChar + 3; // length of "[ ]"
+
+    const edit = new vscode.WorkspaceEdit();
+    const range = new vscode.Range(targetLine, startChar, targetLine, endChar);
+    edit.replace(doc.uri, range, newBox);
+    await vscode.workspace.applyEdit(edit);
   }
 
   public dispose(): void {

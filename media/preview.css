@@ -1217,3 +1217,73 @@ tr:hover td {
   border-radius: 6px;
   border: 1px solid var(--ag-border-subtle);
 }
+
+/* ==========================================================================
+   Task Lists / Interactive Checkboxes
+   ========================================================================== */
+
+.antigravity-markdown-root ul.contains-task-list {
+  list-style-type: none !important;
+  padding-left: 4px !important;
+}
+
+.antigravity-markdown-root li.task-list-item {
+  list-style-type: none !important;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 6px 0;
+  line-height: 1.6;
+}
+
+.task-list-item-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid var(--ag-border);
+  border-radius: 4px;
+  background-color: var(--ag-surface);
+  cursor: pointer;
+  margin: 3px 0 0 0;
+  flex-shrink: 0;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  outline: none;
+}
+
+.task-list-item-checkbox:hover {
+  border-color: var(--vscode-button-background, #388bfd);
+  background-color: var(--ag-surface-hover);
+}
+
+.task-list-item-checkbox:focus-visible {
+  box-shadow: 0 0 0 2px var(--vscode-focusBorder, #007fd4);
+}
+
+.task-list-item-checkbox:checked {
+  background-color: var(--vscode-button-background, #238636);
+  border-color: var(--vscode-button-background, #238636);
+}
+
+.task-list-item-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.task-text {
+  flex: 1 1 auto;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.task-list-item.checked > .task-text {
+  text-decoration: line-through;
+  color: var(--ag-fg-subtle);
+}

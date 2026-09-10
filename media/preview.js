@@ -988,6 +988,31 @@
     zoomLevelEl.textContent = `${Math.round(currentZoom * 100)}%`;
   }
 
+
+  // Interactive Task List Checkbox Click Handler (Two-Way Sync)
+  document.addEventListener('change', (e) => {
+    const target = e.target;
+    if (target && target.classList.contains('task-list-item-checkbox')) {
+      const lineAttr = target.getAttribute('data-line');
+      const line = lineAttr !== null ? parseInt(lineAttr, 10) : -1;
+      const isChecked = target.checked;
+
+      // Optimistic visual update
+      const listItem = target.closest('.task-list-item');
+      if (listItem) {
+        listItem.classList.toggle('checked', isChecked);
+      }
+
+      if (line >= 0) {
+        vscode.postMessage({
+          command: 'toggleTask',
+          line: line,
+          checked: isChecked
+        });
+      }
+    }
+  });
+
   // Initial setup
   bindInteractions();
   setupScrollSpy();
