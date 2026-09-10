@@ -399,8 +399,6 @@
     if (card) {
       const bodySvg = card.querySelector('.diagram-body svg');
       if (bodySvg) return bodySvg;
-      const anySvg = card.querySelector('svg:not(.diagram-type svg)');
-      if (anySvg) return anySvg;
     }
     const targetId = btn.getAttribute('data-target');
     if (targetId) {
@@ -639,20 +637,33 @@
       if (btn.dataset.bound) return;
       btn.dataset.bound = 'true';
 
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
         const card = btn.closest('.antigravity-diagram-card');
         const titleSpan = card ? card.querySelector('.diagram-type span') : null;
         const title = (titleSpan && titleSpan.textContent) ? titleSpan.textContent.trim() : 'Diagram Interactive View';
 
-        // Try Mermaid SVG first
+        // 1. PlantUML Card check
+        if (card && card.classList.contains('plantuml-card')) {
+          const targetId = btn.getAttribute('data-target');
+          const img = card.querySelector('.plantuml-svg-img') || (targetId ? document.getElementById(targetId) : null);
+          if (img) {
+            openDiagramModal(img, title);
+            return;
+          }
+        }
+
+        // 2. Try Mermaid diagram body SVG
         const svg = getDiagramSvg(btn);
         if (svg) {
           openDiagramModal(svg, title);
           return;
         }
 
-        // Try PlantUML image
-        const img = card ? card.querySelector('.plantuml-svg-img') : document.getElementById(btn.getAttribute('data-target'));
+        // 3. Fallback to any image inside diagram body
+        const img = card ? (card.querySelector('.diagram-body img') || card.querySelector('img')) : null;
         if (img) {
           openDiagramModal(img, title);
           return;
@@ -1315,12 +1326,32 @@
       clone.style.maxWidth = 'none';
       clone.style.maxHeight = 'none';
     } else if (element.tagName && element.tagName.toLowerCase() === 'img') {
-      width = element.naturalWidth || element.width || 800;
-      height = element.naturalHeight || element.height || 600;
+      const rect = element.getBoundingClientRect();
+      width = element.naturalWidth || Math.round(rect.width) || element.width || 800;
+      height = element.naturalHeight || Math.round(rect.height) || element.height || 600;
+      if (element.naturalWidth && element.naturalHeight) {
+        width = element.naturalWidth;
+        height = element.naturalHeight;
+      } else if (rect.width > 50 && rect.height > 50) {
+        width = Math.round(rect.width);
+        height = Math.round(rect.height);
+      }
       clone.style.width = `${width}px`;
       clone.style.height = `${height}px`;
       clone.style.maxWidth = 'none';
       clone.style.maxHeight = 'none';
+      clone.style.display = 'block';
+
+      // Auto re-fit if image finishes loading after modal opens
+      clone.onload = () => {
+        if (clone.naturalWidth && clone.naturalHeight) {
+          currentDiagramWidth = clone.naturalWidth;
+          currentDiagramHeight = clone.naturalHeight;
+          modalCanvas.style.width = `${currentDiagramWidth}px`;
+          modalCanvas.style.height = `${currentDiagramHeight}px`;
+          fitModalDiagram();
+        }
+      };
     }
 
     currentDiagramWidth = Math.max(100, width);
