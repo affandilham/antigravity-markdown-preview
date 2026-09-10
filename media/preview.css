@@ -1740,3 +1740,71 @@ body:not([data-vscode-theme-kind*="dark"]) .diagram-modal-hint {
     outline-width: 1.5px;
   }
 }
+
+/* ==========================================================================
+   Keyboard Key (<kbd>) 3D Skeuomorphic Styling
+   ========================================================================== */
+kbd {
+  display: inline-block;
+  padding: 2.5px 6px;
+  font-family: var(--ag-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  font-size: 0.85em;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--ag-fg, #1f2328);
+  vertical-align: middle;
+  background-color: var(--ag-surface, #f6f8fa);
+  border: 1px solid var(--ag-border, #d0d7de);
+  border-bottom: 2px solid #afb8c1;
+  border-radius: 5px;
+  box-shadow: inset 0 -1px 0 rgba(175, 184, 193, 0.25), 0 1px 2px rgba(0, 0, 0, 0.08);
+  margin: 0 2px;
+  white-space: nowrap;
+  user-select: none;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.15s ease;
+}
+
+kbd:hover {
+  filter: brightness(0.97);
+}
+
+kbd:active {
+  transform: translateY(1px);
+  border-bottom-width: 1px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* W3C nested <kbd> pattern */
+kbd kbd {
+  padding: 0;
+  border: 0;
+  border-bottom: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: inherit;
+  font-weight: inherit;
+  margin: 0;
+}
+
+/* Dark Theme Adaptive Overrides */
+body.vscode-dark kbd,
+body[data-vscode-theme-kind*="dark"] kbd {
+  color: var(--ag-fg, #e6edf3);
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 2.5px solid rgba(0, 0, 0, 0.65);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.5), 0 2px 3px rgba(0, 0, 0, 0.35);
+}
+
+body.vscode-dark kbd:hover,
+body[data-vscode-theme-kind*="dark"] kbd:hover {
+  background-color: rgba(255, 255, 255, 0.13);
+}
+
+body.vscode-dark kbd:active,
+body[data-vscode-theme-kind*="dark"] kbd:active {
+  transform: translateY(1px);
+  border-bottom-width: 1px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
