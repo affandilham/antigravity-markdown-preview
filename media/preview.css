@@ -1058,7 +1058,8 @@ tr:hover td {
   .preview-toc-drawer,
   .copy-code-btn,
   .diagram-actions,
-  .table-toolbar {
+  .table-toolbar,
+  .search-overlay {
     display: none !important;
   }
 
@@ -1808,3 +1809,169 @@ body[data-vscode-theme-kind*="dark"] kbd:active {
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
+
+
+/* ==========================================================================
+   In-Page Search Floating Overlay (Cmd + F Quick Find)
+   ========================================================================== */
+
+.search-overlay {
+  position: fixed;
+  top: 10px;
+  right: 24px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--ag-surface);
+  border: 1px solid var(--ag-border);
+  border-radius: 8px;
+  padding: 3px 6px 3px 8px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(0);
+  opacity: 1;
+}
+
+body.vscode-dark .search-overlay,
+body[data-vscode-theme-kind*="dark"] .search-overlay {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.25);
+  background: rgba(22, 27, 34, 0.94);
+}
+
+.search-overlay.search-hidden {
+  display: none !important;
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ag-bg);
+  border: 1px solid var(--ag-border-subtle);
+  border-radius: 6px;
+  padding: 3px 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search-input-wrapper:focus-within {
+  border-color: var(--ag-link);
+  box-shadow: 0 0 0 1.5px rgba(9, 105, 218, 0.25);
+}
+
+body.vscode-dark .search-input-wrapper:focus-within,
+body[data-vscode-theme-kind*="dark"] .search-input-wrapper:focus-within {
+  box-shadow: 0 0 0 1.5px rgba(88, 166, 255, 0.25);
+}
+
+.search-input-wrapper.no-match {
+  border-color: var(--alert-caution);
+}
+
+.search-icon {
+  color: var(--ag-fg-muted);
+  flex-shrink: 0;
+}
+
+#searchInput {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--ag-fg);
+  font-family: var(--ag-font);
+  font-size: 12.5px;
+  line-height: 1.4;
+  width: 175px;
+  padding: 0;
+}
+
+#searchInput::placeholder {
+  color: var(--ag-fg-subtle);
+}
+
+.search-matches-count {
+  font-family: var(--ag-font);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ag-fg-muted);
+  white-space: nowrap;
+  user-select: none;
+  padding-left: 4px;
+  min-width: 34px;
+  text-align: right;
+}
+
+.search-input-wrapper.no-match .search-matches-count {
+  color: var(--alert-caution);
+  font-weight: 500;
+}
+
+.search-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.search-btn {
+  background: transparent;
+  color: var(--ag-fg-muted);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.search-btn:hover {
+  color: var(--ag-fg);
+  background-color: var(--ag-surface-hover);
+  border-color: var(--ag-border-subtle);
+}
+
+.search-btn:active {
+  transform: translateY(1px);
+}
+
+.search-close-btn:hover {
+  color: var(--alert-caution);
+  background-color: var(--alert-caution-bg);
+}
+
+/* Document Search Highlights */
+mark.ag-search-match {
+  background-color: rgba(250, 204, 21, 0.4);
+  color: inherit;
+  border-radius: 2px;
+  padding: 1px 1px;
+  transition: background-color 0.12s ease;
+}
+
+body.vscode-dark mark.ag-search-match,
+body[data-vscode-theme-kind*="dark"] mark.ag-search-match {
+  background-color: rgba(234, 179, 8, 0.35);
+  color: inherit;
+}
+
+mark.ag-search-match.current {
+  background-color: #f59e0b;
+  color: #000000 !important;
+  font-weight: 600;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1.5px #d97706, 0 1px 4px rgba(0, 0, 0, 0.25);
+  position: relative;
+  z-index: 2;
+}
+
+body.vscode-dark mark.ag-search-match.current,
+body[data-vscode-theme-kind*="dark"] mark.ag-search-match.current {
+  background-color: #fbbf24;
+  color: #000000 !important;
+  box-shadow: 0 0 0 1.5px #f59e0b, 0 2px 6px rgba(0, 0, 0, 0.4);
+}

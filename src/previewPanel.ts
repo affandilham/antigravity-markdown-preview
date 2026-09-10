@@ -415,6 +415,11 @@ export class MarkdownPreviewPanel {
     </div>
 
     <div class="toolbar-right">
+      <button class="toolbar-btn icon-only" id="btnOpenSearch" title="Find in preview (Cmd + F)" type="button">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+        </svg>
+      </button>
       <button class="toolbar-btn" id="btnExportHtml" title="Export HTML" type="button">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
           <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
@@ -447,6 +452,34 @@ export class MarkdownPreviewPanel {
       </div>
     </div>
   </header>
+
+  <!-- In-Page Floating Search Bar (Cmd + F) -->
+  <div class="search-overlay search-hidden" id="searchOverlay" style="display: none;" aria-hidden="true">
+    <div class="search-input-wrapper">
+      <svg class="search-icon" width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+      </svg>
+      <input type="text" id="searchInput" placeholder="Find in preview..." autocomplete="off" spellcheck="false" />
+      <span class="search-matches-count" id="searchMatchesCount">0/0</span>
+    </div>
+    <div class="search-actions">
+      <button class="search-btn" id="btnSearchPrev" title="Previous match (Shift + Enter / ↑)" type="button">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <path fill-rule="evenodd" d="M8 12a.5.5 0 0 0 .5-.5V5.707l2.146 2.147a.5.5 0 0 0 .708-.708l-3-3a.5.5 0 0 0-.708 0l-3 3a.5.5 0 1 0 .708.708L7.5 5.707V11.5a.5.5 0 0 0 .5.5z"/>
+        </svg>
+      </button>
+      <button class="search-btn" id="btnSearchNext" title="Next match (Enter / ↓)" type="button">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 10.293V4.5A.5.5 0 0 1 8 4z"/>
+        </svg>
+      </button>
+      <button class="search-btn search-close-btn" id="btnSearchClose" title="Close (Esc)" type="button">
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
 
   <div class="preview-layout" id="previewLayout">
     <aside class="preview-toc-drawer closed" id="tocDrawer">
