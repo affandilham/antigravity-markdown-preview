@@ -1292,3 +1292,239 @@ tr:hover td {
   text-decoration: line-through;
   color: var(--ag-fg-subtle);
 }
+
+/* ==========================================================================
+   14. Diagram Interactive Lightbox Modal (Pan & Zoom)
+   ========================================================================== */
+
+.diagram-btn.icon-only {
+  padding: 2px 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diagram-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(13, 17, 23, 0.84);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.diagram-modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.diagram-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.diagram-modal-header {
+  position: relative;
+  z-index: 10;
+  height: 48px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--ag-border-subtle, rgba(255, 255, 255, 0.1));
+  background: rgba(22, 27, 34, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+body:not([data-vscode-theme-kind*="dark"]) .diagram-modal-header {
+  background: rgba(246, 248, 250, 0.85);
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+body:not([data-vscode-theme-kind*="dark"]) .diagram-modal-overlay {
+  background-color: rgba(240, 242, 245, 0.88);
+}
+
+.diagram-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ag-fg, #e6edf3);
+}
+
+body:not([data-vscode-theme-kind*="dark"]) .diagram-modal-title {
+  color: #1f2328;
+}
+
+.diagram-modal-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modal-control-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ag-fg-muted, #8b949e);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--ag-border-subtle, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+body:not([data-vscode-theme-kind*="dark"]) .modal-control-btn {
+  color: #57606a;
+  background: #ffffff;
+  border-color: #d0d7de;
+}
+
+.modal-control-btn:hover {
+  color: var(--ag-fg, #ffffff);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--ag-border, rgba(255, 255, 255, 0.25));
+}
+
+body:not([data-vscode-theme-kind*="dark"]) .modal-control-btn:hover {
+  color: #1f2328;
+  background: #f3f4f6;
+  border-color: #8c959f;
+}
+
+.modal-control-btn.icon-only {
+  width: 28px;
+  padding: 0;
+}
+
+.modal-zoom-indicator-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-family: var(--ag-font-mono, monospace);
+  color: var(--ag-fg, #e6edf3);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+body:not([data-vscode-theme-kind*="dark"]) .modal-zoom-indicator-btn {
+  color: #1f2328;
+}
+
+.modal-zoom-indicator-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body:not([data-vscode-theme-kind*="dark"]) .modal-zoom-indicator-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.modal-close-btn {
+  background: rgba(248, 81, 73, 0.15) !important;
+  border-color: rgba(248, 81, 73, 0.3) !important;
+  color: #ff7b72 !important;
+  margin-left: 6px;
+}
+
+.modal-close-btn:hover {
+  background: rgba(248, 81, 73, 0.3) !important;
+  color: #ffffff !important;
+}
+
+body:not([data-vscode-theme-kind*="dark"]) .modal-close-btn {
+  background: #ffebe9 !important;
+  border-color: rgba(255, 129, 130, 0.4) !important;
+  color: #cf222e !important;
+}
+
+body:not([data-vscode-theme-kind*="dark"]) .modal-close-btn:hover {
+  background: #ff8182 !important;
+  color: #ffffff !important;
+}
+
+.diagram-modal-viewport {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.diagram-modal-viewport.dragging {
+  cursor: grabbing !important;
+}
+
+.diagram-modal-canvas {
+  transform-origin: 0 0;
+  display: inline-block;
+  will-change: transform;
+  pointer-events: auto;
+}
+
+.diagram-modal-canvas svg,
+.diagram-modal-canvas img {
+  display: block;
+  max-width: none !important;
+  max-height: none !important;
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.4));
+  border-radius: 6px;
+}
+
+body:not([data-vscode-theme-kind*="dark"]) .diagram-modal-canvas svg,
+body:not([data-vscode-theme-kind*="dark"]) .diagram-modal-canvas img {
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.15));
+}
+
+.diagram-modal-hint {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 6px 16px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ag-fg-muted, #8b949e);
+  background: rgba(22, 27, 34, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--ag-border-subtle, rgba(255, 255, 255, 0.12));
+  border-radius: 20px;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  letter-spacing: 0.3px;
+}
+
+body:not([data-vscode-theme-kind*="dark"]) .diagram-modal-hint {
+  color: #57606a;
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #d0d7de;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}

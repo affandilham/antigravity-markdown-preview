@@ -634,6 +634,32 @@
       });
     });
 
+    // 2d. Fullscreen Interactive Pan & Zoom Modal for Diagrams
+    document.querySelectorAll('.modal-expand-btn').forEach((btn) => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = 'true';
+
+      btn.addEventListener('click', () => {
+        const card = btn.closest('.antigravity-diagram-card');
+        const titleSpan = card ? card.querySelector('.diagram-type span') : null;
+        const title = (titleSpan && titleSpan.textContent) ? titleSpan.textContent.trim() : 'Diagram Interactive View';
+
+        // Try Mermaid SVG first
+        const svg = getDiagramSvg(btn);
+        if (svg) {
+          openDiagramModal(svg, title);
+          return;
+        }
+
+        // Try PlantUML image
+        const img = card ? card.querySelector('.plantuml-svg-img') : document.getElementById(btn.getAttribute('data-target'));
+        if (img) {
+          openDiagramModal(img, title);
+          return;
+        }
+      });
+    });
+
     // 3. Save PNG for Mermaid
     document.querySelectorAll('.export-png-btn').forEach((btn) => {
       if (btn.dataset.bound) return;
@@ -1176,7 +1202,270 @@
     }
   });
 
+  // Diagram Lightbox Pan & Zoom Modal State & Controls
+  let modalScale = 1.0;
+  let modalTranslate = { x: 0, y: 0 };
+  let isDraggingModal = false;
+  let dragStartPointer = { x: 0, y: 0 };
+  let currentDiagramWidth = 800;
+  let currentDiagramHeight = 600;
+  let isModalOpen = false;
+
+  const modalOverlay = document.getElementById('diagramModalOverlay');
+  const modalBackdrop = document.getElementById('diagramModalBackdrop');
+  const modalTitleEl = document.getElementById('diagramModalTitle');
+  const modalViewport = document.getElementById('diagramModalViewport');
+  const modalCanvas = document.getElementById('diagramModalCanvas');
+  const modalZoomLevel = document.getElementById('modalZoomLevel');
+  const btnModalZoomIn = document.getElementById('btnModalZoomIn');
+  const btnModalZoomOut = document.getElementById('btnModalZoomOut');
+  const btnModalZoomReset = document.getElementById('btnModalZoomReset');
+  const btnModalFit = document.getElementById('btnModalFit');
+  const btnModalClose = document.getElementById('btnModalClose');
+
+  function applyModalTransform() {
+    if (!modalCanvas) return;
+    modalCanvas.style.transform = `translate(${modalTranslate.x}px, ${modalTranslate.y}px) scale(${modalScale})`;
+    if (modalZoomLevel) {
+      modalZoomLevel.textContent = `${Math.round(modalScale * 100)}%`;
+    }
+  }
+
+  function fitModalDiagram() {
+    if (!modalViewport || !modalCanvas) return;
+    const padding = 60;
+    const vw = Math.max(160, modalViewport.clientWidth - padding);
+    const vh = Math.max(120, modalViewport.clientHeight - padding);
+
+    const scaleX = vw / Math.max(1, currentDiagramWidth);
+    const scaleY = vh / Math.max(1, currentDiagramHeight);
+    modalScale = Math.min(scaleX, scaleY, 2.5);
+    modalScale = Math.max(0.1, Math.min(10.0, modalScale));
+
+    modalTranslate.x = (modalViewport.clientWidth - currentDiagramWidth * modalScale) / 2;
+    modalTranslate.y = (modalViewport.clientHeight - currentDiagramHeight * modalScale) / 2;
+    applyModalTransform();
+  }
+
+  function resetModalZoom() {
+    if (!modalViewport) return;
+    modalScale = 1.0;
+    modalTranslate.x = (modalViewport.clientWidth - currentDiagramWidth) / 2;
+    modalTranslate.y = (modalViewport.clientHeight - currentDiagramHeight) / 2;
+    applyModalTransform();
+  }
+
+  function openDiagramModal(element, title = 'Diagram Interactive View') {
+    if (!modalOverlay || !modalCanvas || !modalViewport) return;
+
+    if (modalTitleEl) {
+      modalTitleEl.textContent = title;
+    }
+
+    modalCanvas.innerHTML = '';
+    const clone = element.cloneNode(true);
+
+    let width = 800;
+    let height = 600;
+
+    if (element.tagName && element.tagName.toLowerCase() === 'svg') {
+      let bbox = null;
+      try {
+        if (typeof element.getBBox === 'function') {
+          bbox = element.getBBox();
+        }
+      } catch (_) {}
+
+      const rect = element.getBoundingClientRect();
+      const viewBox = element.viewBox && element.viewBox.baseVal;
+
+      if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
+        width = Math.round(viewBox.width);
+        height = Math.round(viewBox.height);
+      } else if (bbox && bbox.width > 0 && bbox.height > 0) {
+        width = Math.round(bbox.width);
+        height = Math.round(bbox.height);
+      } else if (rect.width > 0 && rect.height > 0) {
+        width = Math.round(rect.width);
+        height = Math.round(rect.height);
+      }
+
+      clone.setAttribute('width', String(width));
+      clone.setAttribute('height', String(height));
+      if (!clone.getAttribute('viewBox')) {
+        clone.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      }
+      clone.style.width = `${width}px`;
+      clone.style.height = `${height}px`;
+      clone.style.maxWidth = 'none';
+      clone.style.maxHeight = 'none';
+    } else if (element.tagName && element.tagName.toLowerCase() === 'img') {
+      width = element.naturalWidth || element.width || 800;
+      height = element.naturalHeight || element.height || 600;
+      clone.style.width = `${width}px`;
+      clone.style.height = `${height}px`;
+      clone.style.maxWidth = 'none';
+      clone.style.maxHeight = 'none';
+    }
+
+    currentDiagramWidth = Math.max(100, width);
+    currentDiagramHeight = Math.max(80, height);
+
+    modalCanvas.style.width = `${currentDiagramWidth}px`;
+    modalCanvas.style.height = `${currentDiagramHeight}px`;
+    modalCanvas.appendChild(clone);
+
+    isModalOpen = true;
+    modalOverlay.classList.add('active');
+    modalOverlay.setAttribute('aria-hidden', 'false');
+
+    fitModalDiagram();
+  }
+
+  function closeDiagramModal() {
+    if (!modalOverlay) return;
+    isModalOpen = false;
+    modalOverlay.classList.remove('active');
+    modalOverlay.setAttribute('aria-hidden', 'true');
+    setTimeout(() => {
+      if (!isModalOpen && modalCanvas) {
+        modalCanvas.innerHTML = '';
+      }
+    }, 250);
+  }
+
+  function setupDiagramModal() {
+    if (!modalViewport || !modalOverlay) return;
+
+    function zoomModalAtPoint(point, factor) {
+      const newScale = Math.min(10.0, Math.max(0.1, modalScale * factor));
+      const diagramX = (point.x - modalTranslate.x) / modalScale;
+      const diagramY = (point.y - modalTranslate.y) / modalScale;
+
+      modalScale = newScale;
+      modalTranslate.x = point.x - diagramX * newScale;
+      modalTranslate.y = point.y - diagramY * newScale;
+      applyModalTransform();
+    }
+
+    if (btnModalZoomIn) {
+      btnModalZoomIn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const center = { x: modalViewport.clientWidth / 2, y: modalViewport.clientHeight / 2 };
+        zoomModalAtPoint(center, 1.25);
+      });
+    }
+
+    if (btnModalZoomOut) {
+      btnModalZoomOut.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const center = { x: modalViewport.clientWidth / 2, y: modalViewport.clientHeight / 2 };
+        zoomModalAtPoint(center, 0.8);
+      });
+    }
+
+    if (btnModalZoomReset) {
+      btnModalZoomReset.addEventListener('click', (e) => {
+        e.stopPropagation();
+        resetModalZoom();
+      });
+    }
+
+    if (btnModalFit) {
+      btnModalFit.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fitModalDiagram();
+      });
+    }
+
+    if (btnModalClose) {
+      btnModalClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeDiagramModal();
+      });
+    }
+
+    if (modalBackdrop) {
+      modalBackdrop.addEventListener('click', () => {
+        closeDiagramModal();
+      });
+    }
+
+    // Smooth Mouse Wheel Zoom (centered on pointer)
+    modalViewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const rect = modalViewport.getBoundingClientRect();
+      const pointer = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+
+      const factor = e.deltaY < 0 ? 1.15 : 0.87;
+      zoomModalAtPoint(pointer, factor);
+    }, { passive: false });
+
+    // Pointer Drag (Pan)
+    modalViewport.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.modal-control-btn') || e.target.closest('.modal-zoom-indicator-btn')) return;
+      isDraggingModal = true;
+      dragStartPointer.x = e.clientX - modalTranslate.x;
+      dragStartPointer.y = e.clientY - modalTranslate.y;
+      modalViewport.classList.add('dragging');
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDraggingModal) return;
+      modalTranslate.x = e.clientX - dragStartPointer.x;
+      modalTranslate.y = e.clientY - dragStartPointer.y;
+      applyModalTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDraggingModal) {
+        isDraggingModal = false;
+        modalViewport.classList.remove('dragging');
+      }
+    });
+
+    // Double-click to toggle fit / 100%
+    modalViewport.addEventListener('dblclick', (e) => {
+      if (e.target.closest('.modal-control-btn') || e.target.closest('.modal-zoom-indicator-btn')) return;
+      if (Math.abs(modalScale - 1.0) < 0.05) {
+        fitModalDiagram();
+      } else {
+        resetModalZoom();
+      }
+    });
+
+    // Keyboard controls
+    window.addEventListener('keydown', (e) => {
+      if (!isModalOpen) return;
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeDiagramModal();
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        const center = { x: modalViewport.clientWidth / 2, y: modalViewport.clientHeight / 2 };
+        zoomModalAtPoint(center, 1.25);
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        const center = { x: modalViewport.clientWidth / 2, y: modalViewport.clientHeight / 2 };
+        zoomModalAtPoint(center, 0.8);
+      } else if (e.key === '0') {
+        e.preventDefault();
+        resetModalZoom();
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        fitModalDiagram();
+      }
+    });
+  }
+
   // Initial setup
+  setupDiagramModal();
   bindInteractions();
   setupScrollSpy();
   setupReverseScrollSync();

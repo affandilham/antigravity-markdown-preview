@@ -26,6 +26,11 @@ export function plantumlPlugin(md: MarkdownIt, options?: { serverUrl?: string })
       <span>PlantUML Diagram</span>
     </div>
     <div class="diagram-actions">
+      <button class="diagram-btn modal-expand-btn modal-puml-expand-btn icon-only" data-target="${diagramId}" title="Fullscreen Pan & Zoom" type="button">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V2h3.5a.5.5 0 0 0 0-1h-4zm10 0a.5.5 0 0 0 0 1H14v3.5a.5.5 0 0 0 1 0v-4a.5.5 0 0 0-.5-.5h-4zM1 10.5a.5.5 0 0 0 1 0V14h3.5a.5.5 0 0 0 0 1h-4a.5.5 0 0 0-.5-.5v-4zm14 0a.5.5 0 0 0-1 0V14h-3.5a.5.5 0 0 0 0 1h4a.5.5 0 0 0 .5-.5v-4z"/>
+        </svg>
+      </button>
       <button class="diagram-btn copy-diagram-code-btn" data-code="${encodedCode}" title="Copy PlantUML Source" type="button">
         Copy
       </button>

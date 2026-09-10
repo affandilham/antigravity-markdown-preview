@@ -459,6 +459,46 @@ export class MarkdownPreviewPanel {
     </main>
   </div>
 
+  <!-- Diagram Interactive Lightbox Modal -->
+  <div class="diagram-modal-overlay" id="diagramModalOverlay" aria-hidden="true">
+    <div class="diagram-modal-backdrop" id="diagramModalBackdrop"></div>
+    <header class="diagram-modal-header">
+      <div class="diagram-modal-title">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V2h3.5a.5.5 0 0 0 0-1h-4zm10 0a.5.5 0 0 0 0 1H14v3.5a.5.5 0 0 0 1 0v-4a.5.5 0 0 0-.5-.5h-4zM1 10.5a.5.5 0 0 0 1 0V14h3.5a.5.5 0 0 0 0 1h-4a.5.5 0 0 0-.5-.5v-4zm14 0a.5.5 0 0 0-1 0V14h-3.5a.5.5 0 0 0 0 1h4a.5.5 0 0 0 .5-.5v-4z"/>
+        </svg>
+        <span id="diagramModalTitle">Diagram Interactive View</span>
+      </div>
+      <div class="diagram-modal-controls">
+        <button class="modal-control-btn icon-only" id="btnModalZoomOut" title="Zoom Out (- / Scroll Down)" type="button">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2 7.75A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.75z"/>
+          </svg>
+        </button>
+        <button class="modal-zoom-indicator-btn" id="btnModalZoomReset" title="Reset Zoom (0 / 100%)" type="button">
+          <span id="modalZoomLevel">100%</span>
+        </button>
+        <button class="modal-control-btn icon-only" id="btnModalZoomIn" title="Zoom In (+ / Scroll Up)" type="button">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2z"/>
+          </svg>
+        </button>
+        <button class="modal-control-btn" id="btnModalFit" title="Fit to Screen (F)" type="button">
+          Fit
+        </button>
+        <button class="modal-control-btn modal-close-btn" id="btnModalClose" title="Close (Esc)" type="button">
+          ✕
+        </button>
+      </div>
+    </header>
+    <div class="diagram-modal-viewport" id="diagramModalViewport">
+      <div class="diagram-modal-canvas" id="diagramModalCanvas"></div>
+    </div>
+    <div class="diagram-modal-hint">
+      <span>Scroll to Zoom · Drag to Pan · Esc to Close</span>
+    </div>
+  </div>
+
   <script nonce="${nonce}" src="${mermaidUri}" defer></script>
   <script nonce="${nonce}" src="${jsUri}" defer></script>
 </body>
