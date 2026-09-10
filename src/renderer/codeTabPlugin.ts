@@ -50,10 +50,11 @@ export function codeTabPlugin(md: MarkdownIt): void {
     let emptyLineCount = 0;
 
     while (nextLine < endLine) {
-      pos = state.bMarks[nextLine] + state.tShift[nextLine];
-      max = state.eMarks[nextLine];
-      const lineText = state.src.slice(pos, max);
-      const trimmed = lineText.trim();
+      // PRESERVE INDENTATION: slice from bMarks (start of line) NOT bMarks + tShift
+      const lineStart = state.bMarks[nextLine];
+      const lineEnd = state.eMarks[nextLine];
+      const fullLine = state.src.slice(lineStart, lineEnd);
+      const trimmed = fullLine.trim();
 
       // Check for code fence open/close
       const fenceMatch = trimmed.match(/^(`{3,}|~{3,})/);
@@ -86,10 +87,8 @@ export function codeTabPlugin(md: MarkdownIt): void {
           let peekLine = nextLine + 1;
           let foundNextTab = false;
           while (peekLine < endLine) {
-            const peekTrimmed = state.src.slice(
-              state.bMarks[peekLine] + state.tShift[peekLine],
-              state.eMarks[peekLine]
-            ).trim();
+            const peekFull = state.src.slice(state.bMarks[peekLine], state.eMarks[peekLine]);
+            const peekTrimmed = peekFull.trim();
             if (peekTrimmed === '') {
               peekLine++;
               continue;
@@ -102,7 +101,7 @@ export function codeTabPlugin(md: MarkdownIt): void {
 
           // If there's another tab coming up in the same group, keep line and continue
           if (foundNextTab) {
-            currentTab.lines.push(lineText);
+            currentTab.lines.push(fullLine);
             nextLine++;
             continue;
           }
@@ -120,7 +119,7 @@ export function codeTabPlugin(md: MarkdownIt): void {
         }
       }
 
-      currentTab.lines.push(lineText);
+      currentTab.lines.push(fullLine);
       nextLine++;
     }
 
