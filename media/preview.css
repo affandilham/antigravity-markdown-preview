@@ -930,11 +930,19 @@ tr:hover td {
 
 .diagram-body .mermaid {
   max-width: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .diagram-body .mermaid svg {
   max-width: 100%;
   height: auto;
+}
+
+.diagram-body .mermaid > svg {
+  min-width: min(100%, 650px);
 }
 
 .plantuml-svg-img {
@@ -1309,16 +1317,16 @@ tr:hover td {
   inset: 0;
   background-color: #0d1117;
   z-index: 99999;
-  display: flex;
+  display: none !important;
   flex-direction: column;
   opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease-out;
+  pointer-events: none !important;
 }
 
 .diagram-modal-overlay.active {
+  display: flex !important;
   opacity: 1;
-  pointer-events: auto;
+  pointer-events: auto !important;
 }
 
 .diagram-modal-backdrop {
@@ -1492,6 +1500,10 @@ body:not([data-vscode-theme-kind*="dark"]) .diagram-modal-viewport {
   contain: layout paint;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  pointer-events: none;
+}
+
+.diagram-modal-overlay.active .diagram-modal-canvas {
   pointer-events: auto;
 }
 

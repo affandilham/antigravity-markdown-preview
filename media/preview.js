@@ -1342,15 +1342,24 @@
   function closeDiagramModal() {
     if (!modalOverlay) return;
     isModalOpen = false;
+    isDraggingModal = false;
+
+    if (modalViewport) {
+      modalViewport.classList.remove('dragging');
+    }
+
     document.body.classList.remove('modal-open');
     document.documentElement.classList.remove('modal-open');
+
     modalOverlay.classList.remove('active');
     modalOverlay.setAttribute('aria-hidden', 'true');
-    setTimeout(() => {
-      if (!isModalOpen && modalCanvas) {
-        modalCanvas.innerHTML = '';
-      }
-    }, 200);
+
+    if (modalCanvas) {
+      modalCanvas.innerHTML = '';
+      modalCanvas.style.transform = '';
+      modalCanvas.style.width = '';
+      modalCanvas.style.height = '';
+    }
   }
 
   function setupDiagramModal() {
@@ -1478,7 +1487,18 @@
     window.addEventListener('mouseup', () => {
       if (isDraggingModal) {
         isDraggingModal = false;
-        modalViewport.classList.remove('dragging');
+        if (modalViewport) {
+          modalViewport.classList.remove('dragging');
+        }
+      }
+    });
+
+    window.addEventListener('blur', () => {
+      if (isDraggingModal) {
+        isDraggingModal = false;
+        if (modalViewport) {
+          modalViewport.classList.remove('dragging');
+        }
       }
     });
 
