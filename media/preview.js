@@ -1537,9 +1537,7 @@
     modalCanvas.style.height = `${currentDiagramHeight}px`;
     modalCanvas.appendChild(clone);
 
-    // Initialize & attach Annotation Canvas layer over the full viewport
     currentDiagramKey = element.id || (title.replace(/\s+/g, '_') + '_' + currentDiagramWidth + 'x' + currentDiagramHeight + '_' + (element.textContent ? element.textContent.trim().slice(0, 24) : ''));
-    initDrawCanvas();
 
     isModalOpen = true;
     document.body.classList.add('modal-open');
@@ -1549,11 +1547,15 @@
 
     // Force reflow after display change from display:none to display:flex
     void modalOverlay.offsetHeight;
+    
+    // Initialize annotation canvas layer AFTER viewport is active and computed
+    initDrawCanvas();
     fitModalDiagram();
 
-    // Re-fit in next frame to ensure layout geometry is 100% computed
+    // Re-fit and sync canvas in next frame to ensure geometry is 100% computed
     requestAnimationFrame(() => {
       if (isModalOpen) {
+        syncCanvasSize();
         fitModalDiagram();
       }
     });
@@ -1612,17 +1614,24 @@
     drawCanvas.style.pointerEvents = isDraw ? 'auto' : 'none';
   }
 
-  function resizeDrawCanvas() {
-    if (!drawCanvas || !modalViewport) return;
+  function syncCanvasSize() {
+    if (!drawCanvas || !modalViewport) return false;
+    const rect = modalViewport.getBoundingClientRect();
     const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const vw = modalViewport.clientWidth || window.innerWidth;
-    const vh = modalViewport.clientHeight || window.innerHeight;
+    const targetW = Math.round(rect.width * dpr);
+    const targetH = Math.round(rect.height * dpr);
 
-    drawCanvas.width = Math.round(vw * dpr);
-    drawCanvas.height = Math.round(vh * dpr);
-    drawCanvas.style.width = '100%';
-    drawCanvas.style.height = '100%';
-    drawCtx = drawCanvas.getContext('2d');
+    if (targetW <= 0 || targetH <= 0) return false;
+
+    if (drawCanvas.width !== targetW || drawCanvas.height !== targetH) {
+      drawCanvas.width = targetW;
+      drawCanvas.height = targetH;
+      drawCanvas.style.width = `${Math.round(rect.width)}px`;
+      drawCanvas.style.height = `${Math.round(rect.height)}px`;
+      drawCtx = drawCanvas.getContext('2d');
+      return true;
+    }
+    return false;
   }
 
   function initDrawCanvas() {
@@ -1635,21 +1644,27 @@
       modalViewport.appendChild(drawCanvas);
     }
 
-    resizeDrawCanvas();
+    syncCanvasSize();
     setupDrawCanvasPointerEvents();
     redrawAnnotations();
     updateDrawingCursor();
   }
 
   function getUnscaledCoords(e) {
-    const rect = modalViewport.getBoundingClientRect();
+    if (!drawCanvas) return { x: 0, y: 0 };
+    // Exact bounding rect of canvas ensures 0.0px cursor-to-ink alignment
+    const rect = drawCanvas.getBoundingClientRect();
     const screenX = e.clientX - rect.left;
     const screenY = e.clientY - rect.top;
     return {
       x: (screenX - modalTranslate.x) / modalScale,
-      y: (screenY - modalTranslate.y) / modalScale
+      y: (screenY - modalTranslate.y) / modalScale,
+      screenX: e.clientX,
+      screenY: e.clientY
     };
   }
+
+  let lastPointerScreen = { x: 0, y: 0 };
 
   function setupDrawCanvasPointerEvents() {
     if (!drawCanvas || drawCanvas.dataset.eventsAttached) return;
@@ -1666,13 +1681,15 @@
       } catch (_) {}
 
       const pos = getUnscaledCoords(e);
+      lastPointerScreen.x = e.clientX;
+      lastPointerScreen.y = e.clientY;
       const size = currentTool === 'highlighter' ? highlighterSize : penSize;
 
       currentStroke = {
         tool: currentTool,
         color: currentColor,
         size: size,
-        points: [pos]
+        points: [{ x: pos.x, y: pos.y }]
       };
 
       redrawAnnotations();
@@ -1683,16 +1700,16 @@
       e.preventDefault();
       e.stopPropagation();
 
+      // Screen-space movement distance check (>= 1.0 screen pixel for high fidelity)
+      const dx = e.clientX - lastPointerScreen.x;
+      const dy = e.clientY - lastPointerScreen.y;
+      if (dx * dx + dy * dy < 1.0) return;
+
+      lastPointerScreen.x = e.clientX;
+      lastPointerScreen.y = e.clientY;
+
       const pos = getUnscaledCoords(e);
-      const pts = currentStroke.points;
-      const last = pts[pts.length - 1];
-
-      // Jitter dampening threshold (distance > 1.2px)
-      const dx = pos.x - last.x;
-      const dy = pos.y - last.y;
-      if (dx * dx + dy * dy < 1.44) return;
-
-      pts.push(pos);
+      currentStroke.points.push({ x: pos.x, y: pos.y });
       redrawAnnotations();
     });
 
@@ -1720,16 +1737,18 @@
   }
 
   function redrawAnnotations() {
-    if (!drawCtx || !drawCanvas || !modalViewport) return;
+    if (!drawCanvas || !modalViewport) return;
+    syncCanvasSize();
+    if (!drawCtx) return;
+
     const dpr = Math.max(1, window.devicePixelRatio || 1);
 
     drawCtx.save();
-    // 1. Reset context to raw pixel scale & clear entire screen viewport
+    // 1. Reset context to raw identity and clear full canvas
     drawCtx.setTransform(1, 0, 0, 1, 0, 0);
     drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
 
-    // 2. Map context directly into virtual diagram space:
-    // Screen (X, Y) = (diagramX * modalScale + modalTranslate.x) * dpr
+    // 2. Map context directly into virtual diagram space with pixel-perfect precision
     drawCtx.setTransform(
       dpr * modalScale,
       0,
