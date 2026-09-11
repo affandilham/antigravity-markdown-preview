@@ -2144,9 +2144,11 @@
       dot.classList.toggle('active', c === currentColor);
     });
 
-    if (moreColorPreview) {
-      moreColorPreview.style.backgroundColor = currentColor;
-    }
+    const moreDots = document.querySelectorAll('#moreColorsRow .color-dot');
+    moreDots.forEach(dot => {
+      const c = (dot.dataset.color || '').toLowerCase();
+      dot.classList.toggle('active', c === currentColor);
+    });
 
     // Update custom color picker state
     const hsv = hexToHsv(currentColor);
@@ -2282,40 +2284,41 @@
   }
 
   function positionActivePopover() {
-    if (!activePopoverId || !activePopoverAnchorEl || !modalViewport) return;
+    if (!activePopoverId || !activePopoverAnchorEl) return;
     const popoverEl = document.getElementById(activePopoverId);
     if (!popoverEl || popoverEl.style.display === 'none') return;
 
     const btnRect = activePopoverAnchorEl.getBoundingClientRect();
-    const vpRect = modalViewport.getBoundingClientRect();
-    const popW = popoverEl.offsetWidth || 280;
+    const parentEl = popoverEl.offsetParent || modalOverlay || document.body;
+    const parentRect = parentEl.getBoundingClientRect();
+    const popW = popoverEl.offsetWidth || 200;
     const popH = popoverEl.offsetHeight || 220;
 
     const arrowEl = popoverEl.querySelector('.popover-arrow');
-    const isDockNearBottom = (btnRect.top - vpRect.top) > vpRect.height / 2;
+    const isAnchorNearBottom = (btnRect.top - parentRect.top) > (parentRect.height / 2);
 
-    let popLeft = (btnRect.left + btnRect.width / 2) - vpRect.left - popW / 2;
-    // Boundary clamp
-    popLeft = Math.max(12, Math.min(vpRect.width - popW - 12, popLeft));
+    let popLeft = (btnRect.left + btnRect.width / 2) - parentRect.left - popW / 2;
+    popLeft = Math.max(10, Math.min(parentRect.width - popW - 10, popLeft));
     popoverEl.style.left = `${Math.round(popLeft)}px`;
 
-    if (isDockNearBottom) {
-      // Show ABOVE dock with arrow pointing down
-      const popTop = (btnRect.top - vpRect.top) - popH - 12;
+    const btnCenterX = (btnRect.left + btnRect.width / 2) - parentRect.left;
+    const arrowLeft = Math.max(14, Math.min(popW - 26, btnCenterX - popLeft - 6));
+
+    if (isAnchorNearBottom) {
+      // Show ABOVE anchor with arrow pointing down (close 8px gap)
+      const popTop = (btnRect.top - parentRect.top) - popH - 8;
       popoverEl.style.top = `${Math.round(popTop)}px`;
       if (arrowEl) {
         arrowEl.className = 'popover-arrow arrow-down';
-        const arrowLeft = (btnRect.left + btnRect.width / 2) - vpRect.left - popLeft;
-        arrowEl.style.left = `${Math.max(14, Math.min(popW - 14, arrowLeft))}px`;
+        arrowEl.style.left = `${Math.round(arrowLeft)}px`;
       }
     } else {
-      // Show BELOW dock with arrow pointing up
-      const popTop = (btnRect.bottom - vpRect.top) + 12;
+      // Show BELOW anchor with arrow pointing up (close 8px gap)
+      const popTop = (btnRect.bottom - parentRect.top) + 8;
       popoverEl.style.top = `${Math.round(popTop)}px`;
       if (arrowEl) {
         arrowEl.className = 'popover-arrow arrow-up';
-        const arrowLeft = (btnRect.left + btnRect.width / 2) - vpRect.left - popLeft;
-        arrowEl.style.left = `${Math.max(14, Math.min(popW - 14, arrowLeft))}px`;
+        arrowEl.style.left = `${Math.round(arrowLeft)}px`;
       }
     }
   }
@@ -3770,34 +3773,30 @@
         if (!retentionOrder.includes(t)) retentionOrder.push(t);
       });
       retentionOrder.push('color');
-      retentionOrder.push('delete');
-      retentionOrder.push('undo');
-      retentionOrder.push('redo');
+      retentionOrder.push('actions');
 
       const visibleInDock = {
         shape: false,
         arrow: false,
         text: false,
         color: false,
-        delete: false,
-        undo: false,
-        redo: false,
+        actions: false,
         exportPng: false
       };
 
       let currentUsedWidth = 0;
       for (const itemKey of retentionOrder) {
-        let itemCost = naturalItemWidths[itemKey] || 0;
+        let itemCost = 0;
         if (['shape', 'arrow', 'text'].includes(itemKey)) {
+          itemCost = naturalItemWidths[itemKey] || 0;
           const hasAnyCreationTool = visibleInDock.shape || visibleInDock.arrow || visibleInDock.text;
           if (!hasAnyCreationTool) itemCost += naturalItemWidths.dividerShapes;
         } else if (itemKey === 'color') {
-          itemCost += naturalItemWidths.dividerColors;
-        } else if (['undo', 'redo', 'delete'].includes(itemKey)) {
-          const hasAnyAction = visibleInDock.undo || visibleInDock.redo || visibleInDock.delete;
-          if (!hasAnyAction) itemCost += naturalItemWidths.dividerActions;
+          itemCost = naturalItemWidths.color + naturalItemWidths.dividerColors;
+        } else if (itemKey === 'actions') {
+          itemCost = naturalItemWidths.undo + naturalItemWidths.redo + naturalItemWidths.delete + naturalItemWidths.dividerActions;
         } else if (itemKey === 'exportPng') {
-          itemCost += naturalItemWidths.dividerExport;
+          itemCost = naturalItemWidths.exportPng + naturalItemWidths.dividerExport;
         }
 
         if (currentUsedWidth + itemCost <= remainingWidth) {
@@ -3805,7 +3804,13 @@
           visibleInDock[itemKey] = true;
         } else {
           visibleInDock[itemKey] = false;
-          inMore[itemKey] = true;
+          if (itemKey === 'actions') {
+            inMore.undo = true;
+            inMore.redo = true;
+            inMore.delete = true;
+          } else {
+            inMore[itemKey] = true;
+          }
         }
       }
 
@@ -3820,12 +3825,11 @@
       if (dockColorsGroup) dockColorsGroup.style.display = visibleInDock.color ? '' : 'none';
       if (dockDividerColors) dockDividerColors.style.display = visibleInDock.color ? '' : 'none';
 
-      if (btnDrawDelete) btnDrawDelete.style.display = visibleInDock.delete ? '' : 'none';
-      if (btnDrawUndo) btnDrawUndo.style.display = visibleInDock.undo ? '' : 'none';
-      if (btnDrawRedo) btnDrawRedo.style.display = visibleInDock.redo ? '' : 'none';
-      const hasAnyActions = visibleInDock.delete || visibleInDock.undo || visibleInDock.redo;
-      if (dockActionsGroup) dockActionsGroup.style.display = hasAnyActions ? '' : 'none';
-      if (dockDividerActions) dockDividerActions.style.display = hasAnyActions ? '' : 'none';
+      if (dockActionsGroup) dockActionsGroup.style.display = visibleInDock.actions ? '' : 'none';
+      if (btnDrawUndo) btnDrawUndo.style.display = visibleInDock.actions ? '' : 'none';
+      if (btnDrawRedo) btnDrawRedo.style.display = visibleInDock.actions ? '' : 'none';
+      if (btnDrawDelete) btnDrawDelete.style.display = visibleInDock.actions ? '' : 'none';
+      if (dockDividerActions) dockDividerActions.style.display = visibleInDock.actions ? '' : 'none';
 
       if (btnDrawExportPng) btnDrawExportPng.style.display = visibleInDock.exportPng ? '' : 'none';
       if (dockDividerExport) dockDividerExport.style.display = visibleInDock.exportPng ? '' : 'none';
@@ -3859,10 +3863,14 @@
       const hasToolsInMore = inMore.shape || inMore.arrow || inMore.text;
       if (moreGroupTools) moreGroupTools.style.display = hasToolsInMore ? 'flex' : 'none';
 
-      // Group 2: Color (Single Item ● Color)
+      // Group 2: Color Swatches Row (Matching Reference Exact UI)
       const hasColorInMore = inMore.color;
       if (moreGroupColor) moreGroupColor.style.display = hasColorInMore ? 'flex' : 'none';
-      if (moreColorPreview) moreColorPreview.style.backgroundColor = currentColor;
+      const moreDots = document.querySelectorAll('#moreColorsRow .color-dot');
+      moreDots.forEach(dot => {
+        const c = (dot.dataset.color || '').toLowerCase();
+        dot.classList.toggle('active', c === currentColor.toLowerCase());
+      });
 
       // Group 3: History & Delete
       if (moreItemUndo) moreItemUndo.style.display = inMore.undo ? 'flex' : 'none';
@@ -4028,13 +4036,19 @@
       });
     }
 
-    if (moreItemColor) {
-      moreItemColor.addEventListener('click', (e) => {
+    const moreSwatches = document.querySelectorAll('#moreColorsRow .color-dot');
+    moreSwatches.forEach(dot => {
+      dot.addEventListener('click', (e) => {
         e.stopPropagation();
-        closeAllPopovers();
-        togglePopover(popoverCustomColor, btnDockMore);
+        const c = dot.dataset.color;
+        if (c) {
+          setActiveColor(c);
+          if (currentTool === 'pan' || currentTool === 'erase') {
+            setDrawingTool('draw');
+          }
+        }
       });
-    }
+    });
 
     if (moreItemUndo) {
       moreItemUndo.addEventListener('click', (e) => {

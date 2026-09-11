@@ -1004,12 +1004,15 @@ export class MarkdownPreviewPanel {
 
         <div class="popover-divider" id="moreSepToolsColor" style="display:none;"></div>
 
-        <!-- Group 2: Color (Single Menu Item with Preview Dot per Spec) -->
-        <div class="more-group" id="moreGroupColor" style="display:none;">
-          <button class="more-menu-item" id="moreItemColor" type="button" aria-label="Color palette">
-            <span class="more-color-preview" id="moreColorPreview"></span>
-            <span class="more-item-label">Color</span>
-          </button>
+        <!-- Group 2: Color Swatches Row (Matching Reference) -->
+        <div class="more-group more-group-colors" id="moreGroupColor" style="display:none;">
+          <div class="more-colors-row" id="moreColorsRow">
+            <button class="color-dot" data-color="#ef4444" style="background:#ef4444;" title="Red" type="button" aria-label="Red"></button>
+            <button class="color-dot" data-color="#3b82f6" style="background:#3b82f6;" title="Blue" type="button" aria-label="Blue"></button>
+            <button class="color-dot" data-color="#22c55e" style="background:#22c55e;" title="Green" type="button" aria-label="Green"></button>
+            <button class="color-dot active" data-color="#f59e0b" style="background:#f59e0b;" title="Orange" type="button" aria-label="Orange"></button>
+            <button class="color-dot" data-color="#a855f7" style="background:#a855f7;" title="Purple" type="button" aria-label="Purple"></button>
+          </div>
         </div>
 
         <div class="popover-divider" id="moreSepColorActions" style="display:none;"></div>
