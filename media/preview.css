@@ -1733,14 +1733,14 @@ body:not([data-vscode-theme-kind*="dark"]) .tooltip-row kbd {
 
 .diagram-modal-dock {
   position: absolute;
-  bottom: 24px;
+  bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 8px;
+  padding: 4px 7px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
@@ -1748,6 +1748,67 @@ body:not([data-vscode-theme-kind*="dark"]) .tooltip-row kbd {
   user-select: none;
   animation: modalDockFloat 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
+  max-width: calc(100% - 16px);
+  box-sizing: border-box;
+}
+
+/* Dynamic Responsive Dock Adaptations */
+.diagram-modal-dock.dock-compact .dock-btn span:not(.dock-chevron),
+@media (max-width: 880px) {
+  .diagram-modal-dock .dock-btn span:not(.dock-chevron) {
+    display: none !important;
+  }
+  .diagram-modal-dock .dock-btn {
+    padding: 0 7px;
+  }
+  .diagram-modal-dock .dock-btn-primary span {
+    display: inline !important;
+  }
+}
+
+.diagram-modal-dock.dock-mini,
+@media (max-width: 660px) {
+  .diagram-modal-dock {
+    gap: 2px;
+    padding: 3px 5px;
+    border-radius: 12px;
+  }
+  .diagram-modal-dock .dock-btn {
+    padding: 0 5px;
+    height: 30px;
+    font-size: 11px;
+  }
+  .diagram-modal-dock .dock-btn span:not(.dock-chevron) {
+    display: none !important;
+  }
+  .diagram-modal-dock .dock-btn-primary {
+    padding: 0 8px;
+  }
+  .diagram-modal-dock .dock-btn-primary span {
+    display: none !important;
+  }
+  .diagram-modal-dock .dock-divider {
+    margin: 0 2px;
+  }
+  .diagram-modal-dock .dock-colors {
+    gap: 4px;
+    padding: 0 2px;
+  }
+  .diagram-modal-dock .dock-colors .color-dot {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .diagram-modal-dock {
+    max-width: calc(100% - 8px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .diagram-modal-dock::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 body[data-vscode-theme-kind*="dark"] .diagram-modal-dock {

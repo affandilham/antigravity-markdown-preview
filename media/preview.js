@@ -1615,12 +1615,14 @@
     // Initialize annotation canvas layer AFTER viewport is active and computed
     initDrawCanvas();
     fitModalDiagram();
+    syncDockResponsiveLayout();
 
     // Re-fit and sync canvas in next frame to ensure geometry is 100% computed
     requestAnimationFrame(() => {
       if (isModalOpen) {
         syncCanvasSize();
         fitModalDiagram();
+        syncDockResponsiveLayout();
       }
     });
   }
@@ -1632,6 +1634,14 @@
 
     if (modalViewport) {
       modalViewport.classList.remove('dragging');
+    }
+
+    if (diagramModalDock) {
+      diagramModalDock.style.left = '';
+      diagramModalDock.style.top = '';
+      diagramModalDock.style.bottom = '';
+      diagramModalDock.style.transform = '';
+      diagramModalDock.classList.remove('dragging');
     }
 
     document.body.classList.remove('modal-open');
@@ -3576,39 +3586,87 @@
       });
     }
 
-    // 8. Draggable Dock Handle (Boundary Clamped inside Viewport)
+    // 8. Dynamic Responsive Layout & Draggable Dock Handle (Mentok ke Sisi Bawah)
     let isDraggingDock = false;
     let dockDragOffset = { x: 0, y: 0 };
 
-    if (dockDragHandle && diagramModalDock) {
-      dockDragHandle.addEventListener('pointerdown', (e) => {
+    window.syncDockResponsiveLayout = function() {
+      if (!diagramModalDock || !modalOverlay) return;
+      const availWidth = modalOverlay.clientWidth || window.innerWidth;
+      const dockScrollWidth = diagramModalDock.scrollWidth;
+
+      if (availWidth < 880 || dockScrollWidth > availWidth - 24) {
+        diagramModalDock.classList.add('dock-compact');
+      } else {
+        diagramModalDock.classList.remove('dock-compact');
+      }
+
+      if (availWidth < 660) {
+        diagramModalDock.classList.add('dock-mini');
+      } else {
+        diagramModalDock.classList.remove('dock-mini');
+      }
+
+      // Re-clamp position if custom left/top was set
+      if (diagramModalDock.style.top && diagramModalDock.style.top !== 'auto') {
+        const parentRect = modalOverlay.getBoundingClientRect();
+        const dockRect = diagramModalDock.getBoundingClientRect();
+        let left = parseFloat(diagramModalDock.style.left) || 0;
+        let top = parseFloat(diagramModalDock.style.top) || 0;
+
+        left = Math.max(4, Math.min(parentRect.width - dockRect.width - 4, left));
+        top = Math.max(48, Math.min(parentRect.height - dockRect.height, top));
+
+        diagramModalDock.style.left = `${Math.round(left)}px`;
+        diagramModalDock.style.top = `${Math.round(top)}px`;
+        positionActivePopover();
+      }
+    };
+
+    if (diagramModalDock && modalOverlay) {
+      const onDockPointerDown = (e) => {
+        // Do not initiate drag if clicking buttons, dots, or inputs
+        if (e.target.closest('.dock-btn') || e.target.closest('.color-dot') || e.target.closest('.color-chevron-btn')) return;
         if (e.button !== 0) return;
         e.preventDefault();
         e.stopPropagation();
+
         isDraggingDock = true;
-        dockDragHandle.classList.add('dragging');
-        try { dockDragHandle.setPointerCapture(e.pointerId); } catch (_) {}
+        if (dockDragHandle) dockDragHandle.classList.add('dragging');
+        diagramModalDock.classList.add('dragging');
+        try { e.target.setPointerCapture(e.pointerId); } catch (_) {}
 
         const dockRect = diagramModalDock.getBoundingClientRect();
+        const parentRect = modalOverlay.getBoundingClientRect();
         dockDragOffset.x = e.clientX - dockRect.left;
         dockDragOffset.y = e.clientY - dockRect.top;
-      });
+      };
+
+      if (dockDragHandle) {
+        dockDragHandle.addEventListener('pointerdown', onDockPointerDown);
+      }
+      diagramModalDock.addEventListener('pointerdown', onDockPointerDown);
 
       const onDockDragMove = (e) => {
         if (!isDraggingDock) return;
         e.preventDefault();
         e.stopPropagation();
 
-        const vpRect = modalViewport.getBoundingClientRect();
+        const parentRect = modalOverlay.getBoundingClientRect();
         const dockRect = diagramModalDock.getBoundingClientRect();
 
-        let newLeft = e.clientX - vpRect.left - dockDragOffset.x;
-        let newTop = e.clientY - vpRect.top - dockDragOffset.y;
+        let newLeft = e.clientX - parentRect.left - dockDragOffset.x;
+        let newTop = e.clientY - parentRect.top - dockDragOffset.y;
 
-        const minX = 12;
-        const maxX = vpRect.width - dockRect.width - 12;
-        const minY = 12;
-        const maxY = vpRect.height - dockRect.height - 12;
+        // Clamping boundaries:
+        // Left & Right: 4px from screen edges
+        const minX = 4;
+        const maxX = Math.max(4, parentRect.width - dockRect.width - 4);
+
+        // Top: below header (48px)
+        // Bottom: maxY = parentRect.height - dockRect.height (MENTOK KE SISI BAWAH 0px!)
+        const minY = 48;
+        const maxY = parentRect.height - dockRect.height;
 
         newLeft = Math.max(minX, Math.min(maxX, newLeft));
         newTop = Math.max(minY, Math.min(maxY, newTop));
@@ -3624,13 +3682,15 @@
       const onDockDragEnd = (e) => {
         if (!isDraggingDock) return;
         isDraggingDock = false;
-        dockDragHandle.classList.remove('dragging');
-        try { dockDragHandle.releasePointerCapture(e.pointerId); } catch (_) {}
+        if (dockDragHandle) dockDragHandle.classList.remove('dragging');
+        diagramModalDock.classList.remove('dragging');
+        try { e.target.releasePointerCapture(e.pointerId); } catch (_) {}
       };
 
-      dockDragHandle.addEventListener('pointermove', onDockDragMove);
-      dockDragHandle.addEventListener('pointerup', onDockDragEnd);
-      dockDragHandle.addEventListener('pointercancel', onDockDragEnd);
+      window.addEventListener('pointermove', onDockDragMove);
+      window.addEventListener('pointerup', onDockDragEnd);
+      window.addEventListener('pointercancel', onDockDragEnd);
+      window.addEventListener('resize', window.syncDockResponsiveLayout);
     }
 
     // Dock Isolation from canvas pointerdown
