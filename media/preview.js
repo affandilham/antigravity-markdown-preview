@@ -2437,6 +2437,16 @@
 
     drawCanvas.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || isSpacePressed) return;
+
+      // If any popover is currently open, clicking outside on the canvas must ONLY
+      // dismiss/close the popover, and NOT start drawing, erasing, or creating items.
+      if (activePopoverId) {
+        closeAllPopovers();
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
       hasPointerMoved = false;
       eraseOccurred = false;
       hasItemModified = false;
@@ -2444,9 +2454,6 @@
       const pos = getUnscaledCoords(e);
       lastPointerScreen.x = e.clientX;
       lastPointerScreen.y = e.clientY;
-
-      // Close popovers on canvas interaction
-      closeAllPopovers();
 
       const data = getDiagramData();
 
@@ -4097,6 +4104,10 @@
 
     if (modalBackdrop) {
       modalBackdrop.addEventListener('click', () => {
+        if (activePopoverId) {
+          closeAllPopovers();
+          return;
+        }
         closeDiagramModal();
       });
     }
