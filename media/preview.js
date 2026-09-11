@@ -1370,6 +1370,19 @@
   let modalRafId = null;
   let lastRenderedScale = -1;
 
+  // Diagram Annotation / Freehand Drawing State
+  let currentTool = 'pan'; // 'pan' | 'pen' | 'highlighter'
+  let currentColor = '#f85149';
+  let penSize = 3;
+  let highlighterSize = 18;
+  let isDrawing = false;
+  let isSpacePressed = false;
+  let currentStroke = null;
+  let currentDiagramKey = '';
+  const diagramAnnotationsMap = new Map(); // diagramKey -> Array of strokes
+  let drawCanvas = null;
+  let drawCtx = null;
+
   const modalOverlay = document.getElementById('diagramModalOverlay');
   const modalBackdrop = document.getElementById('diagramModalBackdrop');
   const modalTitleEl = document.getElementById('diagramModalTitle');
@@ -1381,6 +1394,14 @@
   const btnModalZoomReset = document.getElementById('btnModalZoomReset');
   const btnModalFit = document.getElementById('btnModalFit');
   const btnModalClose = document.getElementById('btnModalClose');
+
+  // Drawing Tools DOM elements
+  const btnToolPan = document.getElementById('btnToolPan');
+  const btnToolPen = document.getElementById('btnToolPen');
+  const btnToolHighlighter = document.getElementById('btnToolHighlighter');
+  const btnDrawUndo = document.getElementById('btnDrawUndo');
+  const btnDrawClear = document.getElementById('btnDrawClear');
+  const btnDrawExportPng = document.getElementById('btnDrawExportPng');
 
   function scheduleModalTransform() {
     if (modalRafId) return;
@@ -1513,6 +1534,10 @@
     modalCanvas.style.height = `${currentDiagramHeight}px`;
     modalCanvas.appendChild(clone);
 
+    // Initialize & attach Annotation Canvas layer over the diagram
+    currentDiagramKey = element.id || (title.replace(/\s+/g, '_') + '_' + currentDiagramWidth + 'x' + currentDiagramHeight + '_' + (element.textContent ? element.textContent.trim().slice(0, 24) : ''));
+    initDrawCanvas();
+
     isModalOpen = true;
     document.body.classList.add('modal-open');
     document.documentElement.classList.add('modal-open');
@@ -1551,6 +1576,335 @@
       modalCanvas.style.transform = '';
       modalCanvas.style.width = '';
       modalCanvas.style.height = '';
+    }
+  }
+
+
+  // ==========================================================================
+  // Freehand Annotation Drawing Engine (High-Performance Smooth Bezier Curves)
+  // ==========================================================================
+  function setDrawingTool(tool) {
+    currentTool = tool;
+    if (btnToolPan) btnToolPan.classList.toggle('active', tool === 'pan');
+    if (btnToolPen) btnToolPen.classList.toggle('active', tool === 'pen');
+    if (btnToolHighlighter) btnToolHighlighter.classList.toggle('active', tool === 'highlighter');
+
+    updateDrawingCursor();
+  }
+
+  function updateDrawingCursor() {
+    if (!modalViewport || !drawCanvas) return;
+    const isDraw = currentTool !== 'pan' && !isSpacePressed;
+    modalViewport.classList.toggle('mode-draw', isDraw);
+    modalViewport.classList.toggle('mode-pan', !isDraw);
+    modalViewport.classList.toggle('space-panning', isSpacePressed);
+    drawCanvas.style.pointerEvents = isDraw ? 'auto' : 'none';
+  }
+
+  function initDrawCanvas() {
+    if (!modalCanvas) return;
+    drawCanvas = document.createElement('canvas');
+    drawCanvas.className = 'diagram-draw-canvas';
+    drawCanvas.id = 'diagramDrawCanvas';
+
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    drawCanvas.width = Math.round(currentDiagramWidth * dpr);
+    drawCanvas.height = Math.round(currentDiagramHeight * dpr);
+    drawCanvas.style.width = `${currentDiagramWidth}px`;
+    drawCanvas.style.height = `${currentDiagramHeight}px`;
+
+    drawCtx = drawCanvas.getContext('2d');
+    drawCtx.scale(dpr, dpr);
+    modalCanvas.appendChild(drawCanvas);
+
+    setupDrawCanvasPointerEvents();
+    redrawAnnotations();
+    updateDrawingCursor();
+  }
+
+  function getUnscaledCoords(e) {
+    const rect = modalCanvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) / modalScale,
+      y: (e.clientY - rect.top) / modalScale
+    };
+  }
+
+  function setupDrawCanvasPointerEvents() {
+    if (!drawCanvas) return;
+
+    drawCanvas.addEventListener('pointerdown', (e) => {
+      if (currentTool === 'pan' || isSpacePressed || e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      isDrawing = true;
+      try {
+        drawCanvas.setPointerCapture(e.pointerId);
+      } catch (_) {}
+
+      const pos = getUnscaledCoords(e);
+      const size = currentTool === 'highlighter' ? highlighterSize : penSize;
+
+      currentStroke = {
+        tool: currentTool,
+        color: currentColor,
+        size: size,
+        points: [pos]
+      };
+
+      // Draw immediate sharp starting dot
+      drawCtx.save();
+      drawCtx.lineCap = 'round';
+      drawCtx.lineJoin = 'round';
+      if (currentTool === 'highlighter') {
+        drawCtx.globalAlpha = 0.35;
+      } else {
+        drawCtx.globalAlpha = 1.0;
+      }
+      drawCtx.fillStyle = currentColor;
+      drawCtx.beginPath();
+      drawCtx.arc(pos.x, pos.y, size / 2, 0, Math.PI * 2);
+      drawCtx.fill();
+      drawCtx.restore();
+    });
+
+    drawCanvas.addEventListener('pointermove', (e) => {
+      if (!isDrawing || !currentStroke || isSpacePressed) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const pos = getUnscaledCoords(e);
+      const pts = currentStroke.points;
+      const last = pts[pts.length - 1];
+
+      // Jitter dampening threshold (distance > 1.2px)
+      const dx = pos.x - last.x;
+      const dy = pos.y - last.y;
+      if (dx * dx + dy * dy < 1.44) return;
+
+      pts.push(pos);
+
+      // Render smooth Quadratic Midpoint Bezier curve segment
+      drawCtx.save();
+      drawCtx.lineCap = 'round';
+      drawCtx.lineJoin = 'round';
+      if (currentStroke.tool === 'highlighter') {
+        drawCtx.globalAlpha = 0.35;
+        drawCtx.lineWidth = currentStroke.size;
+      } else {
+        drawCtx.globalAlpha = 1.0;
+        drawCtx.lineWidth = currentStroke.size;
+      }
+      drawCtx.strokeStyle = currentStroke.color;
+
+      drawCtx.beginPath();
+      if (pts.length === 2) {
+        drawCtx.moveTo(pts[0].x, pts[0].y);
+        drawCtx.lineTo(pts[1].x, pts[1].y);
+      } else {
+        const pPrev = pts[pts.length - 3];
+        const pMidPrev = { x: (pPrev.x + pts[pts.length - 2].x) / 2, y: (pPrev.y + pts[pts.length - 2].y) / 2 };
+        const pMidCur = { x: (pts[pts.length - 2].x + pos.x) / 2, y: (pts[pts.length - 2].y + pos.y) / 2 };
+        drawCtx.moveTo(pMidPrev.x, pMidPrev.y);
+        drawCtx.quadraticCurveTo(pts[pts.length - 2].x, pts[pts.length - 2].y, pMidCur.x, pMidCur.y);
+      }
+      drawCtx.stroke();
+      drawCtx.restore();
+    });
+
+    const finishStroke = (e) => {
+      if (!isDrawing) return;
+      isDrawing = false;
+      try {
+        drawCanvas.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+
+      if (currentStroke && currentStroke.points.length > 0) {
+        let strokes = diagramAnnotationsMap.get(currentDiagramKey);
+        if (!strokes) {
+          strokes = [];
+          diagramAnnotationsMap.set(currentDiagramKey, strokes);
+        }
+        strokes.push(currentStroke);
+        currentStroke = null;
+        redrawAnnotations(); // Clean anti-aliased composite pass
+      }
+    };
+
+    drawCanvas.addEventListener('pointerup', finishStroke);
+    drawCanvas.addEventListener('pointercancel', finishStroke);
+  }
+
+  function redrawAnnotations() {
+    if (!drawCtx || !drawCanvas) return;
+    drawCtx.clearRect(0, 0, currentDiagramWidth, currentDiagramHeight);
+
+    const strokes = diagramAnnotationsMap.get(currentDiagramKey) || [];
+    if (strokes.length === 0) return;
+
+    for (const stroke of strokes) {
+      const pts = stroke.points;
+      if (!pts || pts.length === 0) continue;
+
+      drawCtx.save();
+      drawCtx.lineCap = 'round';
+      drawCtx.lineJoin = 'round';
+      if (stroke.tool === 'highlighter') {
+        drawCtx.globalAlpha = 0.35;
+        drawCtx.lineWidth = stroke.size;
+      } else {
+        drawCtx.globalAlpha = 1.0;
+        drawCtx.lineWidth = stroke.size;
+      }
+      drawCtx.strokeStyle = stroke.color;
+      drawCtx.fillStyle = stroke.color;
+
+      if (pts.length === 1) {
+        drawCtx.beginPath();
+        drawCtx.arc(pts[0].x, pts[0].y, stroke.size / 2, 0, Math.PI * 2);
+        drawCtx.fill();
+      } else if (pts.length === 2) {
+        drawCtx.beginPath();
+        drawCtx.moveTo(pts[0].x, pts[0].y);
+        drawCtx.lineTo(pts[1].x, pts[1].y);
+        drawCtx.stroke();
+      } else {
+        drawCtx.beginPath();
+        drawCtx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length - 1; i++) {
+          const midX = (pts[i].x + pts[i + 1].x) / 2;
+          const midY = (pts[i].y + pts[i + 1].y) / 2;
+          drawCtx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+        }
+        drawCtx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+        drawCtx.stroke();
+      }
+      drawCtx.restore();
+    }
+  }
+
+  function undoAnnotation() {
+    const strokes = diagramAnnotationsMap.get(currentDiagramKey);
+    if (strokes && strokes.length > 0) {
+      strokes.pop();
+      redrawAnnotations();
+      showModalToast('Undid stroke');
+    }
+  }
+
+  function clearAnnotations() {
+    const strokes = diagramAnnotationsMap.get(currentDiagramKey);
+    if (strokes && strokes.length > 0) {
+      strokes.length = 0;
+      redrawAnnotations();
+      showModalToast('Cleared drawings');
+    }
+  }
+
+  function showModalToast(msg) {
+    if (!modalOverlay) return;
+    let toast = document.getElementById('diagramDrawToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'diagramDrawToast';
+      toast.className = 'draw-toast';
+      modalOverlay.appendChild(toast);
+    }
+    toast.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/></svg> <span>${msg}</span>`;
+    toast.classList.add('show');
+    setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2200);
+  }
+
+  async function exportAnnotatedDiagramPng() {
+    if (!modalCanvas) return;
+    const svgOrImg = modalCanvas.querySelector('svg, img');
+    if (!svgOrImg) return;
+
+    try {
+      showModalToast('Rasterizing annotated diagram...');
+      const scale = 2; // 2x crisp Retina output
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = Math.round(currentDiagramWidth * scale);
+      offCanvas.height = Math.round(currentDiagramHeight * scale);
+      const offCtx = offCanvas.getContext('2d');
+
+      // Theme background
+      const isDark = document.body.getAttribute('data-vscode-theme-kind') !== 'vscode-light';
+      offCtx.fillStyle = isDark ? '#0d1117' : '#ffffff';
+      offCtx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+
+      // Draw diagram
+      if (svgOrImg.tagName.toLowerCase() === 'svg') {
+        const svgXml = new XMLSerializer().serializeToString(svgOrImg);
+        const img = new Image();
+        const svgBlob = new Blob([svgXml], { type: 'image/svg+xml;charset=utf-8' });
+        const blobUrl = URL.createObjectURL(svgBlob);
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            offCtx.drawImage(img, 0, 0, offCanvas.width, offCanvas.height);
+            URL.revokeObjectURL(blobUrl);
+            resolve();
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(blobUrl);
+            reject(new Error('Failed to load SVG into raster image'));
+          };
+          img.src = blobUrl;
+        });
+      } else {
+        offCtx.drawImage(svgOrImg, 0, 0, offCanvas.width, offCanvas.height);
+      }
+
+      // Draw vector annotations on top
+      const strokes = diagramAnnotationsMap.get(currentDiagramKey) || [];
+      for (const stroke of strokes) {
+        const pts = stroke.points;
+        if (!pts || pts.length === 0) continue;
+
+        offCtx.save();
+        offCtx.lineCap = 'round';
+        offCtx.lineJoin = 'round';
+        if (stroke.tool === 'highlighter') {
+          offCtx.globalAlpha = 0.35;
+          offCtx.lineWidth = stroke.size * scale;
+        } else {
+          offCtx.globalAlpha = 1.0;
+          offCtx.lineWidth = stroke.size * scale;
+        }
+        offCtx.strokeStyle = stroke.color;
+        offCtx.fillStyle = stroke.color;
+
+        if (pts.length === 1) {
+          offCtx.beginPath();
+          offCtx.arc(pts[0].x * scale, pts[0].y * scale, (stroke.size * scale) / 2, 0, Math.PI * 2);
+          offCtx.fill();
+        } else if (pts.length === 2) {
+          offCtx.beginPath();
+          offCtx.moveTo(pts[0].x * scale, pts[0].y * scale);
+          offCtx.lineTo(pts[1].x * scale, pts[1].y * scale);
+          offCtx.stroke();
+        } else {
+          offCtx.beginPath();
+          offCtx.moveTo(pts[0].x * scale, pts[0].y * scale);
+          for (let i = 1; i < pts.length - 1; i++) {
+            const midX = ((pts[i].x + pts[i + 1].x) / 2) * scale;
+            const midY = ((pts[i].y + pts[i + 1].y) / 2) * scale;
+            offCtx.quadraticCurveTo(pts[i].x * scale, pts[i].y * scale, midX, midY);
+          }
+          offCtx.lineTo(pts[pts.length - 1].x * scale, pts[pts.length - 1].y * scale);
+          offCtx.stroke();
+        }
+        offCtx.restore();
+      }
+
+      const dataUrl = offCanvas.toDataURL('image/png');
+      vscode.postMessage({ command: 'copyPng', dataUrl });
+      showModalToast('Copied Diagram & Annotations to Clipboard!');
+    } catch (err) {
+      showModalToast('Failed to export PNG: ' + (err.message || err));
     }
   }
 
@@ -1607,6 +1961,62 @@
       });
     }
 
+    // Annotation Tool Switchers
+    if (btnToolPan) {
+      btnToolPan.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setDrawingTool('pan');
+      });
+    }
+
+    if (btnToolPen) {
+      btnToolPen.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setDrawingTool('pen');
+      });
+    }
+
+    if (btnToolHighlighter) {
+      btnToolHighlighter.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setDrawingTool('highlighter');
+      });
+    }
+
+    if (btnDrawUndo) {
+      btnDrawUndo.addEventListener('click', (e) => {
+        e.stopPropagation();
+        undoAnnotation();
+      });
+    }
+
+    if (btnDrawClear) {
+      btnDrawClear.addEventListener('click', (e) => {
+        e.stopPropagation();
+        clearAnnotations();
+      });
+    }
+
+    if (btnDrawExportPng) {
+      btnDrawExportPng.addEventListener('click', (e) => {
+        e.stopPropagation();
+        exportAnnotatedDiagramPng();
+      });
+    }
+
+    // Color picker dots
+    document.querySelectorAll('.draw-colors .color-dot').forEach((dot) => {
+      dot.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.draw-colors .color-dot').forEach((d) => d.classList.remove('active'));
+        dot.classList.add('active');
+        currentColor = dot.dataset.color || '#f85149';
+        if (currentTool === 'pan') {
+          setDrawingTool('pen');
+        }
+      });
+    });
+
     if (modalBackdrop) {
       modalBackdrop.addEventListener('click', () => {
         closeDiagramModal();
@@ -1657,7 +2067,8 @@
     // Pointer Drag (Pan) with mouse or single-touch drag
     modalViewport.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
-      if (e.target.closest('.modal-control-btn') || e.target.closest('.modal-zoom-indicator-btn')) return;
+      if (e.target.closest('.modal-control-btn') || e.target.closest('.modal-zoom-indicator-btn') || e.target.closest('.diagram-modal-draw-tools')) return;
+      if (currentTool !== 'pan' && !isSpacePressed) return;
       isDraggingModal = true;
       dragStartPointer.x = e.clientX - modalTranslate.x;
       dragStartPointer.y = e.clientY - modalTranslate.y;
@@ -1704,13 +2115,42 @@
       }
     });
 
+    // Spacebar temporary pan toggling
+    window.addEventListener('keyup', (e) => {
+      if (!isModalOpen) return;
+      if (e.code === 'Space') {
+        isSpacePressed = false;
+        updateDrawingCursor();
+      }
+    });
+
     // Keyboard controls
     window.addEventListener('keydown', (e) => {
       if (!isModalOpen) return;
 
+      // Spacebar hold for temporary pan navigation
+      if (e.code === 'Space' && !e.repeat && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        isSpacePressed = true;
+        updateDrawingCursor();
+        return;
+      }
+
+      // Cmd+Z or Ctrl+Z for Undo Annotation
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
+        e.preventDefault();
+        undoAnnotation();
+        return;
+      }
+
       if (e.key === 'Escape') {
         e.preventDefault();
         closeDiagramModal();
+      } else if (e.key === 'p' || e.key === 'P') {
+        setDrawingTool('pen');
+      } else if (e.key === 'h' || e.key === 'H') {
+        setDrawingTool('highlighter');
+      } else if (e.key === 'v' || e.key === 'V') {
+        setDrawingTool('pan');
       } else if (e.key === '+' || e.key === '=') {
         e.preventDefault();
         const center = { x: modalViewport.clientWidth / 2, y: modalViewport.clientHeight / 2 };
