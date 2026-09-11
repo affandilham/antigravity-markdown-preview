@@ -681,70 +681,293 @@ export class MarkdownPreviewPanel {
       <div class="diagram-modal-canvas" id="diagramModalCanvas"></div>
       <canvas class="diagram-draw-canvas" id="diagramDrawCanvas"></canvas>
     </div>
-    <!-- Floating Bottom Toolbar Dock (Figma Style) -->
-    <div class="diagram-modal-dock" id="diagramModalDock">
-      <div class="dock-segment">
-        <button class="dock-btn active" id="btnToolPan" title="Pan / Geser Mode (V)" type="button">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M10 13a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-4-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm8 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-4-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-            <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zM2 8a6 6 0 1 1 12 0A6 6 0 0 1 2 8z"/>
-          </svg>
-          <span>Pan</span>
-        </button>
-        <button class="dock-btn" id="btnToolPen" title="Draw Pen (P)" type="button">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+    <!-- Floating Annotation Dock (Desktop Pro Grade) -->
+    <div class="diagram-modal-dock" id="diagramModalDock" role="toolbar" aria-label="Diagram Annotation Toolbar">
+      <!-- 1. Drag Handle -->
+      <div class="dock-drag-handle" id="dockDragHandle" title="Drag to Reposition Toolbar" role="button" tabindex="0" aria-label="Drag toolbar">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+          <circle cx="5" cy="3" r="1.5"/>
+          <circle cx="11" cy="3" r="1.5"/>
+          <circle cx="5" cy="8" r="1.5"/>
+          <circle cx="11" cy="8" r="1.5"/>
+          <circle cx="5" cy="13" r="1.5"/>
+          <circle cx="11" cy="13" r="1.5"/>
+        </svg>
+      </div>
+
+      <!-- 2. Pan Tool -->
+      <button class="dock-btn active" id="btnToolPan" title="Pan / Geser Canvas (V / Space)" type="button" aria-label="Pan tool">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
+          <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/>
+          <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+          <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+        </svg>
+        <span>Pan</span>
+      </button>
+
+      <div class="dock-divider"></div>
+
+      <!-- 3. Draw Tool with Popover -->
+      <div class="dock-tool-wrapper">
+        <button class="dock-btn" id="btnToolDraw" title="Draw Pen (P)" type="button" aria-label="Draw tool" aria-haspopup="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m18 2 4 4-14 14H4v-4L18 2z"/>
           </svg>
           <span>Draw</span>
-        </button>
-        <button class="dock-btn" id="btnToolHighlighter" title="Highlighter (H)" type="button">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M14.086.146a.5.5 0 0 1 .707 0l1.061 1.06a.5.5 0 0 1 0 .708l-4.95 4.95-1.768-1.768 4.95-4.95zm-5.657 5.657 1.768 1.768-5.657 5.657a.5.5 0 0 1-.196.12l-3.535 1.414a.5.5 0 0 1-.646-.646l1.414-3.536a.5.5 0 0 1 .12-.196l5.657-5.657z"/>
+          <svg class="dock-chevron" width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
           </svg>
-          <span>Highlight</span>
+        </button>
+      </div>
+
+      <!-- 4. Erase Tool -->
+      <button class="dock-btn" id="btnToolErase" title="Erase Stroke or Object (E)" type="button" aria-label="Eraser tool">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/>
+          <path d="M22 21H7"/>
+          <path d="m5 11 9 9"/>
+        </svg>
+        <span>Erase</span>
+      </button>
+
+      <!-- 5. Highlight Tool -->
+      <button class="dock-btn" id="btnToolHighlight" title="Highlighter (H)" type="button" aria-label="Highlighter tool">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m9 11-6 6v3h3l6-6"/>
+          <path d="m22 7-4.5-4.5a2.12 2.12 0 0 0-3 0l-1.5 1.5 7.5 7.5 1.5-1.5a2.12 2.12 0 0 0 0-3z"/>
+        </svg>
+        <span>Highlight</span>
+      </button>
+
+      <!-- 6. Shape Tool with Popover -->
+      <div class="dock-tool-wrapper">
+        <button class="dock-btn" id="btnToolShape" title="Shapes (S)" type="button" aria-label="Shape tool" aria-haspopup="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2"/>
+          </svg>
+          <span>Shape</span>
+          <svg class="dock-chevron" width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 7. Arrow Tool -->
+      <button class="dock-btn" id="btnToolArrow" title="Arrow (A)" type="button" aria-label="Arrow tool">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 17 17 7"/>
+          <path d="M7 7h10v10"/>
+        </svg>
+        <span>Arrow</span>
+      </button>
+
+      <!-- 8. Text Tool -->
+      <div class="dock-tool-wrapper">
+        <button class="dock-btn" id="btnToolText" title="Text (T)" type="button" aria-label="Text tool" aria-haspopup="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 7 4 4 20 4 20 7"/>
+            <line x1="9" x2="15" y1="20" y2="20"/>
+            <line x1="12" x2="12" y1="4" y2="20"/>
+          </svg>
+          <span>Text</span>
         </button>
       </div>
 
       <div class="dock-divider"></div>
 
-      <div class="dock-colors">
-        <button class="color-dot active" data-color="#f85149" style="background:#f85149;" title="Coral Red" type="button"></button>
-        <button class="color-dot" data-color="#58a6ff" style="background:#58a6ff;" title="Sky Blue" type="button"></button>
-        <button class="color-dot" data-color="#3fb950" style="background:#3fb950;" title="Emerald Green" type="button"></button>
-        <button class="color-dot" data-color="#e3b341" style="background:#e3b341;" title="Amber Yellow" type="button"></button>
-        <button class="color-dot" data-color="#bc8cff" style="background:#bc8cff;" title="Purple" type="button"></button>
+      <!-- 9. Color Shortcut & Dropdown Palette -->
+      <div class="dock-colors-group" id="dockColorsGroup">
+        <div class="dock-colors" id="dockColors">
+          <button class="color-dot" data-color="#ef4444" style="background:#ef4444;" title="Red" type="button" aria-label="Red color"></button>
+          <button class="color-dot" data-color="#3b82f6" style="background:#3b82f6;" title="Blue" type="button" aria-label="Blue color"></button>
+          <button class="color-dot" data-color="#22c55e" style="background:#22c55e;" title="Green" type="button" aria-label="Green color"></button>
+          <button class="color-dot active" data-color="#f59e0b" style="background:#f59e0b;" title="Orange" type="button" aria-label="Orange color"></button>
+          <button class="color-dot" data-color="#a855f7" style="background:#a855f7;" title="Purple" type="button" aria-label="Purple color"></button>
+        </div>
+        <button class="color-chevron-btn" id="btnColorChevron" title="Full Color Palette & Custom Picker" type="button" aria-label="More colors">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+          </svg>
+        </button>
       </div>
 
       <div class="dock-divider"></div>
 
+      <!-- 10. History & Delete -->
       <div class="dock-actions">
-        <button class="dock-btn icon-only" id="btnDrawUndo" title="Undo (Cmd+Z / Ctrl+Z)" type="button">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-            <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+        <button class="dock-btn icon-only" id="btnDrawUndo" title="Undo (Cmd+Z / Ctrl+Z)" type="button" aria-label="Undo" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7v6h6"/>
+            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
           </svg>
         </button>
-        <button class="dock-btn icon-only" id="btnDrawRedo" title="Redo (Cmd+Shift+Z / Ctrl+Y)" type="button">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-            <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
-            <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308c-.12.1-.12.284 0 .384L7.59 4.658A.25.25 0 0 0 8 4.466z"/>
+        <button class="dock-btn icon-only" id="btnDrawRedo" title="Redo (Cmd+Shift+Z / Ctrl+Y)" type="button" aria-label="Redo" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 7v6h-6"/>
+            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/>
           </svg>
         </button>
-        <button class="dock-btn icon-only" id="btnDrawClear" title="Clear All Drawings" type="button">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+        <button class="dock-btn icon-only" id="btnDrawDelete" title="Delete Selected Object (Backspace / Del)" type="button" aria-label="Delete selected" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"/>
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+            <line x1="10" x2="10" y1="11" y2="17"/>
+            <line x1="14" x2="14" y1="11" y2="17"/>
           </svg>
         </button>
-        <button class="dock-btn dock-btn-primary" id="btnDrawExportPng" title="Copy Diagram with Annotations as PNG" type="button">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
-            <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
-          </svg>
-          <span>Copy PNG</span>
-        </button>
+      </div>
+
+      <div class="dock-divider"></div>
+
+      <!-- 11. Copy PNG -->
+      <button class="dock-btn dock-btn-primary" id="btnDrawExportPng" title="Copy Diagram with Annotations as PNG" type="button" aria-label="Copy image as PNG">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+        </svg>
+        <span id="btnCopyPngLabel">Copy PNG</span>
+      </button>
+    </div>
+
+    <!-- Popover 1: Draw Settings -->
+    <div class="dock-popover" id="popoverDraw" aria-label="Draw settings" style="display:none;">
+      <div class="popover-arrow" id="popoverDrawArrow"></div>
+      <div class="popover-section">
+        <div class="popover-row-header">
+          <span class="popover-label">Stroke size</span>
+          <div class="popover-number-wrap">
+            <input type="number" id="drawStrokeNumber" min="1" max="50" value="5" />
+            <span class="unit">px</span>
+          </div>
+        </div>
+        <div class="popover-slider-row">
+          <span class="range-bound">1</span>
+          <input type="range" id="drawStrokeSlider" min="1" max="50" value="5" />
+          <span class="range-bound">50</span>
+        </div>
+      </div>
+
+      <div class="popover-divider"></div>
+
+      <div class="popover-section">
+        <div class="popover-label">Recent colors</div>
+        <div class="popover-colors-row" id="drawRecentColors"></div>
+      </div>
+
+      <div class="popover-section">
+        <div class="popover-label">More colors</div>
+        <div class="popover-palette-grid" id="drawMoreColors"></div>
       </div>
     </div>
+
+    <!-- Popover 2: Shapes -->
+    <div class="dock-popover" id="popoverShapes" aria-label="Shapes" style="display:none;">
+      <div class="popover-arrow" id="popoverShapesArrow"></div>
+      <div class="popover-section">
+        <div class="popover-title">Shapes</div>
+        <div class="shapes-grid">
+          <button class="shape-card active" data-shape="rect" type="button" aria-label="Rectangle shape">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1"/></svg>
+            <span>Rectangle</span>
+          </button>
+          <button class="shape-card" data-shape="circle" type="button" aria-label="Circle shape">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
+            <span>Circle</span>
+          </button>
+          <button class="shape-card" data-shape="ellipse" type="button" aria-label="Ellipse shape">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="6"/></svg>
+            <span>Ellipse</span>
+          </button>
+          <button class="shape-card" data-shape="line" type="button" aria-label="Line shape">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="4"/></svg>
+            <span>Line</span>
+          </button>
+          <button class="shape-card" data-shape="roundrect" type="button" aria-label="Rounded rectangle shape">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/></svg>
+            <span>Rounded Rect</span>
+          </button>
+          <button class="shape-card" data-shape="freeform" type="button" aria-label="Freeform shape">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 15c4-6 6-6 9 0s5 6 9 0"/></svg>
+            <span>Freeform</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Popover 3: Text Settings -->
+    <div class="dock-popover" id="popoverText" aria-label="Text settings" style="display:none;">
+      <div class="popover-arrow" id="popoverTextArrow"></div>
+      <div class="popover-section">
+        <div class="popover-row-header">
+          <span class="popover-label">Font size</span>
+          <div class="popover-number-wrap">
+            <input type="number" id="textFontNumber" min="8" max="72" value="16" />
+            <span class="unit">px</span>
+          </div>
+        </div>
+        <div class="popover-slider-row">
+          <span class="range-bound">8</span>
+          <input type="range" id="textFontSlider" min="8" max="72" value="16" />
+          <span class="range-bound">72</span>
+        </div>
+      </div>
+
+      <div class="popover-divider"></div>
+
+      <div class="popover-section">
+        <div class="popover-label">Text color</div>
+        <div class="popover-colors-row" id="textColorsRow"></div>
+      </div>
+
+      <div class="popover-divider"></div>
+
+      <div class="popover-section">
+        <div class="popover-label">Font style</div>
+        <div class="font-style-row">
+          <button class="style-toggle-btn" id="btnFontBold" type="button" title="Bold" aria-label="Bold text">
+            <span class="style-icon-b">B</span>
+            <small>Bold</small>
+          </button>
+          <button class="style-toggle-btn" id="btnFontItalic" type="button" title="Italic" aria-label="Italic text">
+            <span class="style-icon-i">I</span>
+            <small>Italic</small>
+          </button>
+          <button class="style-toggle-btn" id="btnFontUnderline" type="button" title="Underline" aria-label="Underline text">
+            <span class="style-icon-u">U</span>
+            <small>Underline</small>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Popover 4: Custom Color Picker -->
+    <div class="dock-popover" id="popoverCustomColor" aria-label="Custom color picker" style="display:none;">
+      <div class="popover-arrow" id="popoverCustomColorArrow"></div>
+      <div class="popover-section">
+        <div class="popover-title">Custom Color</div>
+        <div class="color-picker-sat-val" id="colorPickerSatVal">
+          <div class="color-picker-sat-white"></div>
+          <div class="color-picker-val-black"></div>
+          <div class="color-picker-handle" id="colorPickerHandle"></div>
+        </div>
+        <div class="color-picker-hue-bar" id="colorPickerHueBar">
+          <div class="color-picker-hue-thumb" id="colorPickerHueThumb"></div>
+        </div>
+        <div class="color-picker-hex-row">
+          <div class="color-picker-preview-dot" id="colorPickerPreview"></div>
+          <div class="color-picker-hex-input-wrap">
+            <span class="hex-hash">#</span>
+            <input type="text" id="colorPickerHexInput" maxlength="6" value="F59E0B" spellcheck="false" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inline Text Editor for Canvas -->
+    <textarea class="canvas-inline-text-editor" id="canvasInlineTextEditor" style="display:none;" placeholder="Type here..."></textarea>
+
   </div>
 
   <script nonce="${nonce}" src="${mermaidUri}" defer></script>
