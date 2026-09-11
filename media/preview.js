@@ -1454,6 +1454,7 @@
 
   // Popover Elements
   const popoverDraw = document.getElementById('popoverDraw');
+  const popoverErase = document.getElementById('popoverErase');
   const popoverShapes = document.getElementById('popoverShapes');
   const popoverText = document.getElementById('popoverText');
   const popoverCustomColor = document.getElementById('popoverCustomColor');
@@ -1484,6 +1485,9 @@
   // Inputs
   const drawStrokeNumber = document.getElementById('drawStrokeNumber');
   const drawStrokeSlider = document.getElementById('drawStrokeSlider');
+  const eraseSizeNumber = document.getElementById('eraseSizeNumber');
+  const eraseSizeSlider = document.getElementById('eraseSizeSlider');
+  let activeEraserSize = 20;
   const textFontNumber = document.getElementById('textFontNumber');
   const textFontSlider = document.getElementById('textFontSlider');
   const btnFontBold = document.getElementById('btnFontBold');
@@ -2073,7 +2077,7 @@
     const data = getDiagramData();
     if (!data.items || data.items.length === 0) return false;
 
-    const eraseRadius = Math.max(6, 12 / modalScale);
+    const eraseRadius = Math.max(2, activeEraserSize / 2);
     let changed = false;
     const nextItems = [];
 
@@ -2347,7 +2351,7 @@
 
   // Popovers Positioning & Lifecycle Management
   function closeAllPopovers() {
-    [popoverDraw, popoverShapes, popoverText, popoverCustomColor, popoverMore].forEach(p => {
+    [popoverDraw, popoverErase, popoverShapes, popoverText, popoverCustomColor, popoverMore].forEach(p => {
       if (p) p.style.display = 'none';
     });
     if (btnDockMore) btnDockMore.classList.remove('active');
@@ -3370,8 +3374,28 @@
     if (btnToolErase) {
       btnToolErase.addEventListener('click', (e) => {
         e.stopPropagation();
-        closeAllPopovers();
-        setDrawingTool('erase');
+        if (currentTool === 'erase') {
+          togglePopover(popoverErase, btnToolErase);
+        } else {
+          setDrawingTool('erase');
+          togglePopover(popoverErase, btnToolErase);
+        }
+      });
+    }
+
+    // Erase Size Numeric & Slider 2-Way Sync
+    if (eraseSizeSlider && eraseSizeNumber) {
+      eraseSizeSlider.addEventListener('input', (e) => {
+        e.stopPropagation();
+        activeEraserSize = Math.max(4, Math.min(100, parseInt(eraseSizeSlider.value) || 20));
+        eraseSizeNumber.value = activeEraserSize;
+      });
+
+      eraseSizeNumber.addEventListener('input', (e) => {
+        e.stopPropagation();
+        const val = Math.max(4, Math.min(100, parseInt(eraseSizeNumber.value) || 20));
+        activeEraserSize = val;
+        eraseSizeSlider.value = val;
       });
     }
 
@@ -3619,7 +3643,7 @@
       pan: 72,
       dividerCore: 13,
       draw: 80,
-      erase: 76,
+      erase: 82,
       highlight: 94,
       dividerShapes: 13,
       shape: 82,
@@ -3961,7 +3985,7 @@
     }
 
     // Popovers Isolation
-    [popoverDraw, popoverShapes, popoverText, popoverCustomColor, popoverMore].forEach(p => {
+    [popoverDraw, popoverErase, popoverShapes, popoverText, popoverCustomColor, popoverMore].forEach(p => {
       if (p) {
         p.addEventListener('pointerdown', (e) => e.stopPropagation());
         p.addEventListener('mousedown', (e) => e.stopPropagation());

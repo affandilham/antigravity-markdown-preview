@@ -722,15 +722,20 @@ export class MarkdownPreviewPanel {
         </button>
       </div>
 
-      <!-- 4. Erase Tool -->
-      <button class="dock-btn" id="btnToolErase" title="Erase Stroke or Object (E)" type="button" aria-label="Eraser tool">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/>
-          <path d="M22 21H7"/>
-          <path d="m5 11 9 9"/>
-        </svg>
-        <span>Erase</span>
-      </button>
+      <!-- 4. Erase Tool with Popover -->
+      <div class="dock-tool-wrapper" id="dockToolEraseWrapper">
+        <button class="dock-btn" id="btnToolErase" title="Eraser (E)" type="button" aria-label="Eraser tool" aria-haspopup="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/>
+            <path d="M22 21H7"/>
+            <path d="m5 11 9 9"/>
+          </svg>
+          <span>Erase</span>
+          <svg class="dock-chevron" width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+          </svg>
+        </button>
+      </div>
 
       <!-- 5. Highlight Tool -->
       <button class="dock-btn" id="btnToolHighlight" title="Highlighter (H)" type="button" aria-label="Highlighter tool">
@@ -873,6 +878,25 @@ export class MarkdownPreviewPanel {
       <div class="popover-section">
         <div class="popover-label">More colors</div>
         <div class="popover-palette-grid" id="drawMoreColors"></div>
+      </div>
+    </div>
+
+    <!-- Popover 1b: Erase Settings -->
+    <div class="dock-popover" id="popoverErase" aria-label="Erase settings" style="display:none;">
+      <div class="popover-arrow" id="popoverEraseArrow"></div>
+      <div class="popover-section">
+        <div class="popover-row-header">
+          <span class="popover-label">Eraser size</span>
+          <div class="popover-number-wrap">
+            <input type="number" id="eraseSizeNumber" min="4" max="100" value="20" />
+            <span class="unit">px</span>
+          </div>
+        </div>
+        <div class="popover-slider-row">
+          <span class="range-bound">4</span>
+          <input type="range" id="eraseSizeSlider" min="4" max="100" value="20" />
+          <span class="range-bound">100</span>
+        </div>
       </div>
     </div>
 
