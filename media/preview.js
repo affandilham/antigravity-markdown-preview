@@ -1749,12 +1749,13 @@
   }
 
   function updateDeleteButtonState() {
-    const hasSelected = !!selectedItemId;
+    const data = getDiagramData();
+    const canDelete = data.items && data.items.length > 0;
     if (btnDrawDelete) {
-      btnDrawDelete.disabled = !hasSelected;
+      btnDrawDelete.disabled = !canDelete;
     }
     if (moreItemDelete) {
-      moreItemDelete.disabled = !hasSelected;
+      moreItemDelete.disabled = !canDelete;
     }
   }
 
@@ -1785,16 +1786,15 @@
   }
 
   function deleteSelectedItem() {
-    if (!selectedItemId) return;
     const data = getDiagramData();
-    const prevLen = data.items.length;
-    const nextItems = data.items.filter(i => i.id !== selectedItemId);
-    if (nextItems.length !== prevLen) {
+    if (data.items.length > 0) {
+      data.items.pop();
       selectedItemId = null;
-      pushHistory(nextItems);
+      pushHistory(data.items);
       redrawAnnotations();
       updateDeleteButtonState();
-      showModalToast('Deleted selected object');
+      updateUndoRedoState();
+      showModalToast('Deleted annotation');
     }
   }
 
@@ -2360,57 +2360,9 @@
 
       const data = getDiagramData();
 
-      // Case 1: PAN MODE OR CLICKING EXISTING OBJECT TO SELECT
+      // Case 1: PAN MODE -> Allow smooth viewport panning
       if (currentTool === 'pan') {
-        // Test if clicking on resize handle of selected item
-        if (selectedItemId) {
-          const selItem = data.items.find(i => i.id === selectedItemId);
-          if (selItem) {
-            const bounds = getItemBounds(selItem);
-            const handle = getResizeHandleAtPoint(bounds, pos);
-            if (handle) {
-              e.preventDefault();
-              e.stopPropagation();
-              isResizingItem = true;
-              resizeHandleType = handle;
-              itemDragStart = { x: pos.x, y: pos.y };
-              itemInitialState = JSON.parse(JSON.stringify(selItem));
-              try { drawCanvas.setPointerCapture(e.pointerId); } catch (_) {}
-              return;
-            }
-          }
-        }
-
-        // Test if clicking on any object to select/move
-        let clickedItem = null;
-        for (let i = data.items.length - 1; i >= 0; i--) {
-          if (hitTestItem(data.items[i], pos, 8)) {
-            clickedItem = data.items[i];
-            break;
-          }
-        }
-
-        if (clickedItem) {
-          e.preventDefault();
-          e.stopPropagation();
-          selectedItemId = clickedItem.id;
-          isMovingItem = true;
-          itemDragStart = { x: pos.x, y: pos.y };
-          itemInitialState = JSON.parse(JSON.stringify(clickedItem));
-          updateDeleteButtonState();
-          redrawAnnotations();
-          try { drawCanvas.setPointerCapture(e.pointerId); } catch (_) {}
-          return;
-        } else {
-          // Clicked empty canvas in pan mode -> deselect
-          if (selectedItemId) {
-            selectedItemId = null;
-            updateDeleteButtonState();
-            redrawAnnotations();
-          }
-          // Pass through to viewport dragging
-          return;
-        }
+        return;
       }
 
       // Case 2: ERASE MODE
@@ -2436,9 +2388,6 @@
           }
         }
         if (clickedText) {
-          selectedItemId = clickedText.id;
-          updateDeleteButtonState();
-          redrawAnnotations();
           openInlineTextEditor(clickedText, pos);
           return;
         }
@@ -2493,74 +2442,7 @@
     });
 
     drawCanvas.addEventListener('pointermove', (e) => {
-      // 1. Moving selected item
-      if (isMovingItem && selectedItemId) {
-        e.preventDefault();
-        e.stopPropagation();
-        const pos = getUnscaledCoords(e);
-        const dx = pos.x - itemDragStart.x;
-        const dy = pos.y - itemDragStart.y;
-        const data = getDiagramData();
-        const item = data.items.find(i => i.id === selectedItemId);
-        if (!item || !itemInitialState) return;
-
-        hasItemModified = true;
-        if (item.type === 'stroke') {
-          item.points = itemInitialState.points.map(p => ({ x: p.x + dx, y: p.y + dy }));
-        } else if (item.type === 'shape') {
-          item.x = itemInitialState.x + dx;
-          item.y = itemInitialState.y + dy;
-          if (item.points) {
-            item.points = itemInitialState.points.map(p => ({ x: p.x + dx, y: p.y + dy }));
-          }
-        } else if (item.type === 'arrow') {
-          item.x1 = itemInitialState.x1 + dx;
-          item.y1 = itemInitialState.y1 + dy;
-          item.x2 = itemInitialState.x2 + dx;
-          item.y2 = itemInitialState.y2 + dy;
-        } else if (item.type === 'text') {
-          item.x = itemInitialState.x + dx;
-          item.y = itemInitialState.y + dy;
-        }
-        redrawAnnotations();
-        return;
-      }
-
-      // 2. Resizing selected shape
-      if (isResizingItem && selectedItemId && itemInitialState) {
-        e.preventDefault();
-        e.stopPropagation();
-        const pos = getUnscaledCoords(e);
-        const dx = pos.x - itemDragStart.x;
-        const dy = pos.y - itemDragStart.y;
-        const data = getDiagramData();
-        const item = data.items.find(i => i.id === selectedItemId);
-        if (!item || item.type !== 'shape') return;
-
-        hasItemModified = true;
-        let { x, y, width, height } = itemInitialState;
-        if (resizeHandleType === 'se') {
-          item.width = width + dx;
-          item.height = height + dy;
-        } else if (resizeHandleType === 'sw') {
-          item.x = x + dx;
-          item.width = width - dx;
-          item.height = height + dy;
-        } else if (resizeHandleType === 'ne') {
-          item.y = y + dy;
-          item.width = width + dx;
-          item.height = height - dy;
-        } else if (resizeHandleType === 'nw') {
-          item.x = x + dx;
-          item.y = y + dy;
-          item.width = width - dx;
-          item.height = height - dy;
-        }
-        redrawAnnotations();
-        return;
-      }
-
-      // 3. Erase dragging
+      // 1. Erase dragging
       if (isDrawing && currentTool === 'erase') {
         e.preventDefault();
         e.stopPropagation();
@@ -2601,38 +2483,19 @@
     });
 
     const finishPointerAction = (e) => {
-      // 1. Moving item finish
-      if (isMovingItem) {
-        isMovingItem = false;
-        try { drawCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
-        if (hasItemModified) {
-          pushHistory(getDiagramData().items);
-        }
-        return;
-      }
-
-      // 2. Resizing item finish
-      if (isResizingItem) {
-        isResizingItem = false;
-        resizeHandleType = null;
-        try { drawCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
-        if (hasItemModified) {
-          pushHistory(getDiagramData().items);
-        }
-        return;
-      }
-
-      // 3. Erasing finish
+      // 1. Erasing finish
       if (currentTool === 'erase' && isDrawing) {
         isDrawing = false;
         try { drawCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
         if (eraseOccurred) {
           pushHistory(getDiagramData().items);
+          updateUndoRedoState();
+          updateDeleteButtonState();
         }
         return;
       }
 
-      // 4. Drawing item finish
+      // 2. Drawing item finish
       if (!isDrawing) return;
       isDrawing = false;
       try { drawCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
@@ -2655,7 +2518,7 @@
 
         if (shouldCommit) {
           data.items.push(currentPreviewItem);
-          selectedItemId = currentPreviewItem.id;
+          selectedItemId = null;
           currentPreviewItem = null;
           pushHistory(data.items);
         } else {
@@ -2727,7 +2590,7 @@
           height: textH
         };
         data.items.push(newItem);
-        selectedItemId = newItem.id;
+        selectedItemId = null;
         pushHistory(data.items);
       }
       redrawAnnotations();
@@ -2912,37 +2775,7 @@
       drawCtx.restore();
     }
 
-    // 2. Render Selection Bounding Box & Corner Handles
-    if (!skipSelectionHandles && selectedItemId && !currentPreviewItem) {
-      const selItem = data.items.find(i => i.id === selectedItemId);
-      if (selItem) {
-        const b = getItemBounds(selItem);
-        drawCtx.save();
-        drawCtx.setLineDash([5 / modalScale, 4 / modalScale]);
-        drawCtx.lineWidth = 1.5 / modalScale;
-        drawCtx.strokeStyle = '#2563eb';
-        drawCtx.strokeRect(b.x, b.y, b.width, b.height);
 
-        // Draw 4 corner handles
-        const handleSize = 8 / modalScale;
-        const handles = [
-          { x: b.x, y: b.y },
-          { x: b.x + b.width, y: b.y },
-          { x: b.x + b.width, y: b.y + b.height },
-          { x: b.x, y: b.y + b.height }
-        ];
-
-        drawCtx.setLineDash([]);
-        drawCtx.fillStyle = '#ffffff';
-        drawCtx.strokeStyle = '#2563eb';
-        drawCtx.lineWidth = 1.5 / modalScale;
-        for (const pt of handles) {
-          drawCtx.fillRect(pt.x - handleSize / 2, pt.y - handleSize / 2, handleSize, handleSize);
-          drawCtx.strokeRect(pt.x - handleSize / 2, pt.y - handleSize / 2, handleSize, handleSize);
-        }
-        drawCtx.restore();
-      }
-    }
 
     drawCtx.restore();
   }
@@ -4159,7 +3992,6 @@
       if (e.button !== 0) return;
       if (e.target.closest('.modal-control-btn') || e.target.closest('.modal-zoom-indicator-btn') || e.target.closest('.diagram-modal-dock') || e.target.closest('.dock-popover') || e.target.closest('.diagram-modal-info-wrapper')) return;
       if (currentTool !== 'pan' && !isSpacePressed) return;
-      if (selectedItemId && isMovingItem) return;
 
       isDraggingModal = true;
       dragStartPointer.x = e.clientX - modalTranslate.x;
@@ -4242,11 +4074,14 @@
         return;
       }
 
-      // Delete selected item: Backspace / Delete (if not typing in input)
-      if ((e.key === 'Delete' || e.key === 'Backspace') && !isInputActive && selectedItemId) {
-        e.preventDefault();
-        deleteSelectedItem();
-        return;
+      // Delete last annotation: Backspace / Delete (if not typing in input)
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !isInputActive) {
+        const data = getDiagramData();
+        if (data.items && data.items.length > 0) {
+          e.preventDefault();
+          deleteSelectedItem();
+          return;
+        }
       }
 
       if (e.key === 'Escape') {
