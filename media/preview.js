@@ -1381,10 +1381,10 @@
   let activeFontSize = 16; // 8 - 72 px, default 16
   let fontStyle = { bold: false, italic: false, underline: false };
 
-  let recentColors = ['#fb980c', '#ea1c24', '#1576fe', '#229b47', '#8437ef', '#374151', '#9ca3af'];
+  let recentColors = ['#fb980c', '#ea1c24', '#1576fe', '#229b47', '#8437ef', '#a3e635', '#06b6d4', '#000000'];
   const defaultPalette = [
-    '#ef4444', '#f87171', '#f97316', '#fbbf24', '#a3e635', '#22c55e', '#06b6d4',
-    '#3b82f6', '#6366f1', '#a855f7', '#f472b6', '#78350f', '#000000', '#ffffff'
+    '#ea1c24', '#f87171', '#fb980c', '#fbbf24', '#a3e635', '#229b47', '#10b981', '#06b6d4',
+    '#1576fe', '#6366f1', '#8437ef', '#ec4899', '#78350f', '#000000', '#ffffff'
   ];
 
   let isDrawing = false;
