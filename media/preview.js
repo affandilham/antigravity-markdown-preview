@@ -1425,19 +1425,31 @@
   const diagramModalDock = document.getElementById('diagramModalDock');
   const dockDragHandle = document.getElementById('dockDragHandle');
   const btnToolPan = document.getElementById('btnToolPan');
+  const dockDividerCore = document.getElementById('dockDividerCore');
+  const dockToolDrawWrapper = document.getElementById('dockToolDrawWrapper');
   const btnToolDraw = document.getElementById('btnToolDraw');
   const btnToolErase = document.getElementById('btnToolErase');
   const btnToolHighlight = document.getElementById('btnToolHighlight');
+  const dockDividerShapes = document.getElementById('dockDividerShapes');
+  const dockToolShapeWrapper = document.getElementById('dockToolShapeWrapper');
   const btnToolShape = document.getElementById('btnToolShape');
   const btnToolArrow = document.getElementById('btnToolArrow');
+  const dockToolTextWrapper = document.getElementById('dockToolTextWrapper');
   const btnToolText = document.getElementById('btnToolText');
+  const dockDividerColors = document.getElementById('dockDividerColors');
+  const dockColorsGroup = document.getElementById('dockColorsGroup');
   const btnColorChevron = document.getElementById('btnColorChevron');
+  const dockDividerActions = document.getElementById('dockDividerActions');
+  const dockActionsGroup = document.getElementById('dockActionsGroup');
   const btnDrawUndo = document.getElementById('btnDrawUndo');
   const btnDrawRedo = document.getElementById('btnDrawRedo');
   const btnDrawDelete = document.getElementById('btnDrawDelete');
+  const dockDividerExport = document.getElementById('dockDividerExport');
   const btnDrawExportPng = document.getElementById('btnDrawExportPng');
   const btnCopyPngLabel = document.getElementById('btnCopyPngLabel');
+  const dockDividerMore = document.getElementById('dockDividerMore');
   const btnDockMore = document.getElementById('btnDockMore');
+  const dockMoreDot = document.getElementById('dockMoreDot');
 
   // Popover Elements
   const popoverDraw = document.getElementById('popoverDraw');
@@ -1447,18 +1459,26 @@
   const popoverMore = document.getElementById('popoverMore');
 
   // Popover More Sub-elements
-  const btnMoreShape = document.getElementById('btnMoreShape');
-  const btnMoreArrow = document.getElementById('btnMoreArrow');
-  const btnMoreText = document.getElementById('btnMoreText');
-  const btnMoreUndo = document.getElementById('btnMoreUndo');
-  const btnMoreRedo = document.getElementById('btnMoreRedo');
-  const btnMoreDelete = document.getElementById('btnMoreDelete');
-  const btnMoreExportPng = document.getElementById('btnMoreExportPng');
-
-  // Auto-Hide Elements & State
-  const dockAutoHideTab = document.getElementById('dockAutoHideTab');
-  let isDockAutoHidden = false;
-  let dockAutoHideTimer = null;
+  const moreGroupTools = document.getElementById('moreGroupTools');
+  const moreItemShape = document.getElementById('moreItemShape');
+  const moreBadgeShape = document.getElementById('moreBadgeShape');
+  const moreItemArrow = document.getElementById('moreItemArrow');
+  const moreBadgeArrow = document.getElementById('moreBadgeArrow');
+  const moreItemText = document.getElementById('moreItemText');
+  const moreBadgeText = document.getElementById('moreBadgeText');
+  const moreSepToolsColor = document.getElementById('moreSepToolsColor');
+  const moreGroupColor = document.getElementById('moreGroupColor');
+  const moreItemColor = document.getElementById('moreItemColor');
+  const moreColorPreview = document.getElementById('moreColorPreview');
+  const moreSepColorActions = document.getElementById('moreSepColorActions');
+  const moreGroupActions = document.getElementById('moreGroupActions');
+  const moreItemUndo = document.getElementById('moreItemUndo');
+  const moreItemRedo = document.getElementById('moreItemRedo');
+  const moreItemDelete = document.getElementById('moreItemDelete');
+  const moreSepActionsExport = document.getElementById('moreSepActionsExport');
+  const moreGroupExport = document.getElementById('moreGroupExport');
+  const moreItemExportPng = document.getElementById('moreItemExportPng');
+  const moreCopyPngLabel = document.getElementById('moreCopyPngLabel');
 
   // Inputs
   const drawStrokeNumber = document.getElementById('drawStrokeNumber');
@@ -1537,50 +1557,7 @@
     applyModalTransform();
   }
 
-  function showDock() {
-    if (!diagramModalDock) return;
-    isDockAutoHidden = false;
-    diagramModalDock.classList.remove('is-autohidden');
-    if (dockAutoHideTab) {
-      dockAutoHideTab.classList.remove('visible');
-      setTimeout(() => {
-        if (!isDockAutoHidden && dockAutoHideTab) {
-          dockAutoHideTab.style.display = 'none';
-        }
-      }, 220);
-    }
-  }
 
-  function hideDock() {
-    if (!diagramModalDock || isDockAutoHidden || isDraggingDock) return;
-    if (activePopoverId) return;
-    isDockAutoHidden = true;
-    closeAllPopovers();
-    if (diagramModalDock.style.top && diagramModalDock.style.top !== 'auto') {
-      diagramModalDock.classList.add('has-custom-pos');
-    } else {
-      diagramModalDock.classList.remove('has-custom-pos');
-    }
-    diagramModalDock.classList.add('is-autohidden');
-    if (dockAutoHideTab) {
-      dockAutoHideTab.style.display = 'inline-flex';
-      requestAnimationFrame(() => {
-        dockAutoHideTab.classList.add('visible');
-      });
-    }
-  }
-
-  function resetDockAutoHideTimer() {
-    if (dockAutoHideTimer) {
-      clearTimeout(dockAutoHideTimer);
-      dockAutoHideTimer = null;
-    }
-    if (currentTool !== 'pan' && !activePopoverId && !isDockAutoHidden && !isDraggingDock) {
-      dockAutoHideTimer = setTimeout(() => {
-        hideDock();
-      }, 4000);
-    }
-  }
 
   function openDiagramModal(element, title = 'Diagram Interactive View') {
     if (!modalOverlay || !modalCanvas || !modalViewport) return;
@@ -1676,15 +1653,14 @@
     // Initialize annotation canvas layer AFTER viewport is active and computed
     initDrawCanvas();
     fitModalDiagram();
-    showDock();
-    syncDockResponsiveLayout();
+    updateResponsiveDockLayout();
 
     // Re-fit and sync canvas in next frame to ensure geometry is 100% computed
     requestAnimationFrame(() => {
       if (isModalOpen) {
         syncCanvasSize();
         fitModalDiagram();
-        syncDockResponsiveLayout();
+        updateResponsiveDockLayout();
       }
     });
   }
@@ -1704,17 +1680,6 @@
       diagramModalDock.style.bottom = '';
       diagramModalDock.style.transform = '';
       diagramModalDock.classList.remove('dragging');
-      diagramModalDock.classList.remove('is-autohidden');
-      diagramModalDock.classList.remove('has-custom-pos');
-    }
-    isDockAutoHidden = false;
-    if (dockAutoHideTimer) {
-      clearTimeout(dockAutoHideTimer);
-      dockAutoHideTimer = null;
-    }
-    if (dockAutoHideTab) {
-      dockAutoHideTab.classList.remove('visible');
-      dockAutoHideTab.style.display = 'none';
     }
 
     document.body.classList.remove('modal-open');
@@ -1775,18 +1740,21 @@
 
   function updateUndoRedoState() {
     const data = getDiagramData();
-    if (btnDrawUndo) btnDrawUndo.disabled = data.historyIndex <= 0;
-    if (btnDrawRedo) btnDrawRedo.disabled = data.historyIndex >= data.history.length - 1;
-    if (btnMoreUndo) btnMoreUndo.disabled = data.historyIndex <= 0;
-    if (btnMoreRedo) btnMoreRedo.disabled = data.historyIndex >= data.history.length - 1;
+    const canUndo = data.historyIndex > 0;
+    const canRedo = data.historyIndex < data.history.length - 1;
+    if (btnDrawUndo) btnDrawUndo.disabled = !canUndo;
+    if (btnDrawRedo) btnDrawRedo.disabled = !canRedo;
+    if (moreItemUndo) moreItemUndo.disabled = !canUndo;
+    if (moreItemRedo) moreItemRedo.disabled = !canRedo;
   }
 
   function updateDeleteButtonState() {
+    const hasSelected = !!selectedItemId;
     if (btnDrawDelete) {
-      btnDrawDelete.disabled = !selectedItemId;
+      btnDrawDelete.disabled = !hasSelected;
     }
-    if (btnMoreDelete) {
-      btnMoreDelete.disabled = !selectedItemId;
+    if (moreItemDelete) {
+      moreItemDelete.disabled = !hasSelected;
     }
   }
 
@@ -1842,10 +1810,6 @@
     if (btnToolShape) btnToolShape.classList.toggle('active', tool === 'shape');
     if (btnToolArrow) btnToolArrow.classList.toggle('active', tool === 'arrow');
     if (btnToolText) btnToolText.classList.toggle('active', tool === 'text');
-    if (btnDockMore) {
-      const isCollapsed = diagramModalDock && diagramModalDock.classList.contains('dock-collapsed');
-      btnDockMore.classList.toggle('active', isCollapsed && ['shape', 'arrow', 'text'].includes(tool));
-    }
 
     // Deselect active object when switching to creation tools
     if (tool !== 'pan' && selectedItemId) {
@@ -1855,6 +1819,7 @@
     }
 
     updateDrawingCursor();
+    updateResponsiveDockLayout();
   }
 
   function updateDrawingCursor() {
@@ -2179,11 +2144,9 @@
       dot.classList.toggle('active', c === currentColor);
     });
 
-    const moreColorDots = document.querySelectorAll('#moreColorsRow .color-dot');
-    moreColorDots.forEach(dot => {
-      const c = (dot.dataset.color || '').toLowerCase();
-      dot.classList.toggle('active', c === currentColor);
-    });
+    if (moreColorPreview) {
+      moreColorPreview.style.backgroundColor = currentColor;
+    }
 
     // Update custom color picker state
     const hsv = hexToHsv(currentColor);
@@ -2297,6 +2260,7 @@
     [popoverDraw, popoverShapes, popoverText, popoverCustomColor, popoverMore].forEach(p => {
       if (p) p.style.display = 'none';
     });
+    if (btnDockMore) btnDockMore.classList.remove('active');
     activePopoverId = null;
     activePopoverAnchorEl = null;
   }
@@ -2311,6 +2275,9 @@
     popoverEl.style.display = 'block';
     activePopoverId = popoverEl.id;
     activePopoverAnchorEl = anchorEl;
+    if (popoverEl.id === 'popoverMore' && btnDockMore) {
+      btnDockMore.classList.add('active');
+    }
     positionActivePopover();
   }
 
@@ -2373,11 +2340,6 @@
 
       // Close popovers on canvas interaction
       closeAllPopovers();
-
-      // Auto-hide dock when drawing or interacting in non-pan mode
-      if (currentTool !== 'pan') {
-        hideDock();
-      }
 
       const data = getDiagramData();
 
@@ -3679,36 +3641,254 @@
       });
     }
 
-    // 8. Dynamic Responsive Layout & Draggable Dock Handle (Mentok ke Sisi Bawah)
+    // 8. Dynamic Priority-Based Responsive Layout & Draggable Dock Handle (Mentok ke Sisi Bawah)
     let isDraggingDock = false;
     let dockDragOffset = { x: 0, y: 0 };
 
-    window.syncDockResponsiveLayout = function() {
-      if (!diagramModalDock || !modalOverlay) return;
-      const availWidth = modalOverlay.clientWidth || window.innerWidth;
-      const dockScrollWidth = diagramModalDock.scrollWidth;
+    const naturalItemWidths = {
+      dragHandle: 28,
+      pan: 72,
+      dividerCore: 13,
+      draw: 80,
+      erase: 76,
+      highlight: 94,
+      dividerShapes: 13,
+      shape: 82,
+      arrow: 76,
+      text: 72,
+      dividerColors: 13,
+      color: 150,
+      dividerActions: 13,
+      undo: 32,
+      redo: 32,
+      delete: 32,
+      dividerExport: 13,
+      exportPng: 106,
+      dividerMore: 13,
+      moreBtn: 38,
+      dockPadding: 24
+    };
 
-      // Auto-collapse into More (•••) menu when width < 860px
-      if (availWidth < 860) {
-        diagramModalDock.classList.add('dock-collapsed');
-      } else {
-        diagramModalDock.classList.remove('dock-collapsed');
+    let hasSampledWidths = false;
+    function sampleItemWidths() {
+      if (hasSampledWidths || !diagramModalDock) return;
+      try {
+        if (dockDragHandle && dockDragHandle.offsetWidth) naturalItemWidths.dragHandle = dockDragHandle.offsetWidth + 4;
+        if (btnToolPan && btnToolPan.offsetWidth) naturalItemWidths.pan = btnToolPan.offsetWidth + 4;
+        if (dockToolDrawWrapper && dockToolDrawWrapper.offsetWidth) naturalItemWidths.draw = dockToolDrawWrapper.offsetWidth + 4;
+        if (btnToolErase && btnToolErase.offsetWidth) naturalItemWidths.erase = btnToolErase.offsetWidth + 4;
+        if (btnToolHighlight && btnToolHighlight.offsetWidth) naturalItemWidths.highlight = btnToolHighlight.offsetWidth + 4;
+        if (dockToolShapeWrapper && dockToolShapeWrapper.offsetWidth) naturalItemWidths.shape = dockToolShapeWrapper.offsetWidth + 4;
+        if (btnToolArrow && btnToolArrow.offsetWidth) naturalItemWidths.arrow = btnToolArrow.offsetWidth + 4;
+        if (dockToolTextWrapper && dockToolTextWrapper.offsetWidth) naturalItemWidths.text = dockToolTextWrapper.offsetWidth + 4;
+        if (dockColorsGroup && dockColorsGroup.offsetWidth) naturalItemWidths.color = dockColorsGroup.offsetWidth + 4;
+        if (btnDrawUndo && btnDrawUndo.offsetWidth) naturalItemWidths.undo = btnDrawUndo.offsetWidth + 2;
+        if (btnDrawRedo && btnDrawRedo.offsetWidth) naturalItemWidths.redo = btnDrawRedo.offsetWidth + 2;
+        if (btnDrawDelete && btnDrawDelete.offsetWidth) naturalItemWidths.delete = btnDrawDelete.offsetWidth + 2;
+        if (btnDrawExportPng && btnDrawExportPng.offsetWidth) naturalItemWidths.exportPng = btnDrawExportPng.offsetWidth + 4;
+        if (btnDockMore && btnDockMore.offsetWidth) naturalItemWidths.moreBtn = btnDockMore.offsetWidth + 4;
+        hasSampledWidths = true;
+      } catch (_) {}
+    }
+
+    function updateResponsiveDockLayout() {
+      if (!diagramModalDock || !modalOverlay) return;
+      sampleItemWidths();
+
+      const containerW = modalViewport ? modalViewport.clientWidth : (modalOverlay.clientWidth || window.innerWidth);
+      const availWidth = Math.max(280, containerW - 32);
+
+      const baseWidth = naturalItemWidths.dragHandle + naturalItemWidths.pan + naturalItemWidths.dividerCore +
+        naturalItemWidths.draw + naturalItemWidths.erase + naturalItemWidths.highlight + naturalItemWidths.dockPadding;
+
+      const allCollapsableWidth = naturalItemWidths.dividerShapes + naturalItemWidths.shape +
+        naturalItemWidths.arrow + naturalItemWidths.text + naturalItemWidths.dividerColors +
+        naturalItemWidths.color + naturalItemWidths.dividerActions + naturalItemWidths.undo +
+        naturalItemWidths.redo + naturalItemWidths.delete + naturalItemWidths.dividerExport +
+        naturalItemWidths.exportPng;
+
+      const inMore = {
+        shape: false,
+        arrow: false,
+        text: false,
+        color: false,
+        undo: false,
+        redo: false,
+        delete: false,
+        exportPng: false
+      };
+
+      if (baseWidth + allCollapsableWidth <= availWidth) {
+        // Everything fits comfortably in the toolbar
+        if (dockToolShapeWrapper) dockToolShapeWrapper.style.display = '';
+        if (btnToolArrow) btnToolArrow.style.display = '';
+        if (dockToolTextWrapper) dockToolTextWrapper.style.display = '';
+        if (dockColorsGroup) dockColorsGroup.style.display = '';
+        if (dockActionsGroup) dockActionsGroup.style.display = '';
+        if (btnDrawUndo) btnDrawUndo.style.display = '';
+        if (btnDrawRedo) btnDrawRedo.style.display = '';
+        if (btnDrawDelete) btnDrawDelete.style.display = '';
+        if (btnDrawExportPng) btnDrawExportPng.style.display = '';
+
+        if (dockDividerShapes) dockDividerShapes.style.display = '';
+        if (dockDividerColors) dockDividerColors.style.display = '';
+        if (dockDividerActions) dockDividerActions.style.display = '';
+        if (dockDividerExport) dockDividerExport.style.display = '';
+
+        if (dockDividerMore) dockDividerMore.style.display = 'none';
+        if (btnDockMore) {
+          btnDockMore.style.display = 'none';
+          btnDockMore.classList.remove('has-active-tool');
+        }
+        if (dockMoreDot) dockMoreDot.style.display = 'none';
+
         if (activePopoverId === 'popoverMore') {
           closeAllPopovers();
         }
+        return;
       }
 
-      if (availWidth < 880 || dockScrollWidth > availWidth - 24) {
-        diagramModalDock.classList.add('dock-compact');
-      } else {
-        diagramModalDock.classList.remove('dock-compact');
+      // Does not fit all: reserve space for More button and divider
+      const remainingWidth = availWidth - (baseWidth + naturalItemWidths.dividerMore + naturalItemWidths.moreBtn);
+
+      // Candidate retention priority (HIGHEST PRIORITY TO KEEP -> COLLAPSE FIRST):
+      // 1. Active tool (Shape / Arrow / Text) if currently active (Preserve active tool visibility)
+      // 2. exportPng (Copy PNG is primary action, retain if possible)
+      // 3. shape (if not active)
+      // 4. arrow (if not active)
+      // 5. text (if not active)
+      // 6. color
+      // 7. delete
+      // 8. undo
+      // 9. redo (collapses first)
+      const retentionOrder = [];
+      if (['shape', 'arrow', 'text'].includes(currentTool)) {
+        retentionOrder.push(currentTool);
+      }
+      retentionOrder.push('exportPng');
+      ['shape', 'arrow', 'text'].forEach(t => {
+        if (!retentionOrder.includes(t)) retentionOrder.push(t);
+      });
+      retentionOrder.push('color');
+      retentionOrder.push('delete');
+      retentionOrder.push('undo');
+      retentionOrder.push('redo');
+
+      const visibleInDock = {
+        shape: false,
+        arrow: false,
+        text: false,
+        color: false,
+        delete: false,
+        undo: false,
+        redo: false,
+        exportPng: false
+      };
+
+      let currentUsedWidth = 0;
+      for (const itemKey of retentionOrder) {
+        let itemCost = naturalItemWidths[itemKey] || 0;
+        if (['shape', 'arrow', 'text'].includes(itemKey)) {
+          const hasAnyCreationTool = visibleInDock.shape || visibleInDock.arrow || visibleInDock.text;
+          if (!hasAnyCreationTool) itemCost += naturalItemWidths.dividerShapes;
+        } else if (itemKey === 'color') {
+          itemCost += naturalItemWidths.dividerColors;
+        } else if (['undo', 'redo', 'delete'].includes(itemKey)) {
+          const hasAnyAction = visibleInDock.undo || visibleInDock.redo || visibleInDock.delete;
+          if (!hasAnyAction) itemCost += naturalItemWidths.dividerActions;
+        } else if (itemKey === 'exportPng') {
+          itemCost += naturalItemWidths.dividerExport;
+        }
+
+        if (currentUsedWidth + itemCost <= remainingWidth) {
+          currentUsedWidth += itemCost;
+          visibleInDock[itemKey] = true;
+        } else {
+          visibleInDock[itemKey] = false;
+          inMore[itemKey] = true;
+        }
       }
 
-      if (availWidth < 660) {
-        diagramModalDock.classList.add('dock-mini');
-      } else {
-        diagramModalDock.classList.remove('dock-mini');
+      // Apply visibility to toolbar DOM
+      if (dockToolShapeWrapper) dockToolShapeWrapper.style.display = visibleInDock.shape ? '' : 'none';
+      if (btnToolArrow) btnToolArrow.style.display = visibleInDock.arrow ? '' : 'none';
+      if (dockToolTextWrapper) dockToolTextWrapper.style.display = visibleInDock.text ? '' : 'none';
+
+      const hasAnyCreation = visibleInDock.shape || visibleInDock.arrow || visibleInDock.text;
+      if (dockDividerShapes) dockDividerShapes.style.display = hasAnyCreation ? '' : 'none';
+
+      if (dockColorsGroup) dockColorsGroup.style.display = visibleInDock.color ? '' : 'none';
+      if (dockDividerColors) dockDividerColors.style.display = visibleInDock.color ? '' : 'none';
+
+      if (btnDrawDelete) btnDrawDelete.style.display = visibleInDock.delete ? '' : 'none';
+      if (btnDrawUndo) btnDrawUndo.style.display = visibleInDock.undo ? '' : 'none';
+      if (btnDrawRedo) btnDrawRedo.style.display = visibleInDock.redo ? '' : 'none';
+      const hasAnyActions = visibleInDock.delete || visibleInDock.undo || visibleInDock.redo;
+      if (dockActionsGroup) dockActionsGroup.style.display = hasAnyActions ? '' : 'none';
+      if (dockDividerActions) dockDividerActions.style.display = hasAnyActions ? '' : 'none';
+
+      if (btnDrawExportPng) btnDrawExportPng.style.display = visibleInDock.exportPng ? '' : 'none';
+      if (dockDividerExport) dockDividerExport.style.display = visibleInDock.exportPng ? '' : 'none';
+
+      // Show More button & divider
+      if (dockDividerMore) dockDividerMore.style.display = '';
+      if (btnDockMore) btnDockMore.style.display = 'inline-flex';
+
+      // Active tool inside More indicator
+      const activeToolInMore = ['shape', 'arrow', 'text'].includes(currentTool) && inMore[currentTool];
+      if (btnDockMore) btnDockMore.classList.toggle('has-active-tool', !!activeToolInMore);
+      if (dockMoreDot) dockMoreDot.style.display = activeToolInMore ? 'block' : 'none';
+
+      // Update Popover More Content
+      // Group 1: Tools
+      if (moreItemShape) {
+        moreItemShape.style.display = inMore.shape ? 'flex' : 'none';
+        moreItemShape.classList.toggle('active', currentTool === 'shape');
+        if (moreBadgeShape) moreBadgeShape.style.display = currentTool === 'shape' ? 'inline' : 'none';
       }
+      if (moreItemArrow) {
+        moreItemArrow.style.display = inMore.arrow ? 'flex' : 'none';
+        moreItemArrow.classList.toggle('active', currentTool === 'arrow');
+        if (moreBadgeArrow) moreBadgeArrow.style.display = currentTool === 'arrow' ? 'inline' : 'none';
+      }
+      if (moreItemText) {
+        moreItemText.style.display = inMore.text ? 'flex' : 'none';
+        moreItemText.classList.toggle('active', currentTool === 'text');
+        if (moreBadgeText) moreBadgeText.style.display = currentTool === 'text' ? 'inline' : 'none';
+      }
+      const hasToolsInMore = inMore.shape || inMore.arrow || inMore.text;
+      if (moreGroupTools) moreGroupTools.style.display = hasToolsInMore ? 'flex' : 'none';
+
+      // Group 2: Color (Single Item ● Color)
+      const hasColorInMore = inMore.color;
+      if (moreGroupColor) moreGroupColor.style.display = hasColorInMore ? 'flex' : 'none';
+      if (moreColorPreview) moreColorPreview.style.backgroundColor = currentColor;
+
+      // Group 3: History & Delete
+      if (moreItemUndo) moreItemUndo.style.display = inMore.undo ? 'flex' : 'none';
+      if (moreItemRedo) moreItemRedo.style.display = inMore.redo ? 'flex' : 'none';
+      if (moreItemDelete) moreItemDelete.style.display = inMore.delete ? 'flex' : 'none';
+      const hasActionsInMore = inMore.undo || inMore.redo || inMore.delete;
+      if (moreGroupActions) moreGroupActions.style.display = hasActionsInMore ? 'flex' : 'none';
+
+      // Group 4: Copy PNG
+      const hasExportInMore = inMore.exportPng;
+      if (moreGroupExport) moreGroupExport.style.display = hasExportInMore ? 'block' : 'none';
+
+      // Conditional Separators (only if both adjacent groups have items)
+      if (moreSepToolsColor) {
+        moreSepToolsColor.style.display = (hasToolsInMore && hasColorInMore) ? 'block' : 'none';
+      }
+      if (moreSepColorActions) {
+        moreSepColorActions.style.display = ((hasToolsInMore || hasColorInMore) && hasActionsInMore) ? 'block' : 'none';
+      }
+      if (moreSepActionsExport) {
+        moreSepActionsExport.style.display = ((hasToolsInMore || hasColorInMore || hasActionsInMore) && hasExportInMore) ? 'block' : 'none';
+      }
+
+      // Sync Undo/Redo/Delete disabled states
+      updateUndoRedoState();
+      updateDeleteButtonState();
 
       // Re-clamp position if custom left/top was set
       if (diagramModalDock.style.top && diagramModalDock.style.top !== 'auto') {
@@ -3722,10 +3902,14 @@
 
         diagramModalDock.style.left = `${Math.round(left)}px`;
         diagramModalDock.style.top = `${Math.round(top)}px`;
+      }
+
+      if (activePopoverId) {
         positionActivePopover();
       }
-    };
+    }
 
+    window.syncDockResponsiveLayout = updateResponsiveDockLayout;
     if (diagramModalDock && modalOverlay) {
       const onDockPointerDown = (e) => {
         // Do not initiate drag if clicking buttons, dots, or inputs
@@ -3793,7 +3977,7 @@
       window.addEventListener('pointermove', onDockDragMove);
       window.addEventListener('pointerup', onDockDragEnd);
       window.addEventListener('pointercancel', onDockDragEnd);
-      window.addEventListener('resize', window.syncDockResponsiveLayout);
+      window.addEventListener('resize', updateResponsiveDockLayout);
     }
 
     // Dock Isolation from canvas pointerdown
@@ -3814,13 +3998,12 @@
     if (btnDockMore) {
       btnDockMore.addEventListener('click', (e) => {
         e.stopPropagation();
-        showDock();
         togglePopover(popoverMore, btnDockMore);
       });
     }
 
-    if (btnMoreShape) {
-      btnMoreShape.addEventListener('click', (e) => {
+    if (moreItemShape) {
+      moreItemShape.addEventListener('click', (e) => {
         e.stopPropagation();
         closeAllPopovers();
         setDrawingTool('shape');
@@ -3828,16 +4011,16 @@
       });
     }
 
-    if (btnMoreArrow) {
-      btnMoreArrow.addEventListener('click', (e) => {
+    if (moreItemArrow) {
+      moreItemArrow.addEventListener('click', (e) => {
         e.stopPropagation();
         closeAllPopovers();
         setDrawingTool('arrow');
       });
     }
 
-    if (btnMoreText) {
-      btnMoreText.addEventListener('click', (e) => {
+    if (moreItemText) {
+      moreItemText.addEventListener('click', (e) => {
         e.stopPropagation();
         closeAllPopovers();
         setDrawingTool('text');
@@ -3845,79 +4028,53 @@
       });
     }
 
-    const moreColorDots = document.querySelectorAll('#moreColorsRow .color-dot');
-    moreColorDots.forEach(dot => {
-      dot.addEventListener('click', (e) => {
+    if (moreItemColor) {
+      moreItemColor.addEventListener('click', (e) => {
         e.stopPropagation();
-        const c = dot.dataset.color;
-        if (c) setActiveColor(c);
+        closeAllPopovers();
+        togglePopover(popoverCustomColor, btnDockMore);
       });
-    });
+    }
 
-    if (btnMoreUndo) {
-      btnMoreUndo.addEventListener('click', (e) => {
+    if (moreItemUndo) {
+      moreItemUndo.addEventListener('click', (e) => {
         e.stopPropagation();
         undo();
       });
     }
 
-    if (btnMoreRedo) {
-      btnMoreRedo.addEventListener('click', (e) => {
+    if (moreItemRedo) {
+      moreItemRedo.addEventListener('click', (e) => {
         e.stopPropagation();
         redo();
       });
     }
 
-    if (btnMoreDelete) {
-      btnMoreDelete.addEventListener('click', (e) => {
+    if (moreItemDelete) {
+      moreItemDelete.addEventListener('click', (e) => {
         e.stopPropagation();
         deleteSelectedItem();
         closeAllPopovers();
       });
     }
 
-    if (btnMoreExportPng) {
-      btnMoreExportPng.addEventListener('click', (e) => {
+    if (moreItemExportPng) {
+      moreItemExportPng.addEventListener('click', (e) => {
         e.stopPropagation();
         closeAllPopovers();
         exportAnnotatedDiagramPng();
       });
     }
 
-    // Auto-Hide Tab & Viewport Hover Handlers
-    if (dockAutoHideTab) {
-      dockAutoHideTab.addEventListener('mouseenter', () => showDock());
-      dockAutoHideTab.addEventListener('click', (e) => {
-        e.stopPropagation();
-        showDock();
-      });
-    }
-
-    if (diagramModalDock) {
-      diagramModalDock.addEventListener('mouseenter', () => {
-        if (dockAutoHideTimer) {
-          clearTimeout(dockAutoHideTimer);
-          dockAutoHideTimer = null;
-        }
-        showDock();
-      });
-      diagramModalDock.addEventListener('mouseleave', () => {
-        resetDockAutoHideTimer();
-      });
-    }
-
-    if (modalViewport) {
-      modalViewport.addEventListener('pointermove', (e) => {
-        const vpRect = modalViewport.getBoundingClientRect();
-        const distFromBottom = vpRect.bottom - e.clientY;
-        if (distFromBottom <= 70) {
-          showDock();
-        } else if (!isDockAutoHidden) {
-          resetDockAutoHideTimer();
+    // ResizeObserver for Container Measurement
+    if (window.ResizeObserver && modalViewport) {
+      const dockResizeObserver = new ResizeObserver(() => {
+        if (isModalOpen) {
+          updateResponsiveDockLayout();
         }
       });
+      dockResizeObserver.observe(modalViewport);
     }
-
     // Close popovers on click outside
     document.addEventListener('pointerdown', (e) => {
       if (!activePopoverId) return;
