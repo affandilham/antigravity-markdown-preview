@@ -3,7 +3,7 @@
   "displayName": "Antigravity Markdown Preview",
   "description": "Rich Markdown preview for Antigravity IDE with GitHub alerts, mermaid, plantuml, code blocks, collapsible sections, TOC, and rich embeds.",
   "version": "0.1.0",
-  "publisher": "mlkyjuicee",
+  "publisher": "Affandilham",
   "engines": {
     "vscode": "^1.85.0"
   },
