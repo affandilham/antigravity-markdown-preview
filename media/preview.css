@@ -724,50 +724,125 @@ body.vscode-dark .hljs-number { color: #79c0ff; }
 body.vscode-dark .hljs-function, body.vscode-dark .hljs-class { color: #d2a8ff; }
 
 /* ==========================================================================
-   3. Collapsible Sections
+   3. Collapsible Sections (Modern Interactive Accordion)
    ========================================================================== */
 
-details,
+details:not(.frontmatter-card),
 .antigravity-collapsible {
-  margin: 16px 0;
+  margin: 18px 0;
   border: 1px solid var(--ag-border);
-  border-radius: 6px;
+  border-radius: 8px;
   background-color: var(--ag-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-summary,
+details:not(.frontmatter-card):hover,
+.antigravity-collapsible:hover {
+  border-color: var(--ag-fg-muted);
+}
+
+details:not(.frontmatter-card)[open],
+.antigravity-collapsible[open] {
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Hide default browser disclosure triangle */
+details:not(.frontmatter-card) > summary::-webkit-details-marker,
+.antigravity-collapsible > summary::-webkit-details-marker {
+  display: none !important;
+}
+
+details:not(.frontmatter-card) > summary,
 .collapsible-summary {
   padding: 10px 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 500;
+  gap: 10px;
+  font-weight: 600;
   font-size: 13.5px;
   user-select: none;
   color: var(--ag-fg);
+  background-color: var(--ag-surface);
+  list-style: none !important;
+  list-style-type: none !important;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  position: relative;
 }
 
-summary:hover,
+details:not(.frontmatter-card) > summary:hover,
 .collapsible-summary:hover {
   background-color: var(--ag-surface-hover);
+  color: var(--ag-link);
+}
+
+/* Elegant SVG Chevron Arrow for all collapsible summaries */
+details:not(.frontmatter-card) > summary::before {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-color: var(--ag-fg-muted);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06z'/%3E%3C/svg%3E") center / contain no-repeat;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+details:not(.frontmatter-card) > summary:hover::before,
+.collapsible-summary:hover .collapsible-chevron {
+  background-color: var(--ag-link);
+  color: var(--ag-link);
+}
+
+/* Open State: Chevron rotates 90deg down smoothly */
+details:not(.frontmatter-card)[open] > summary::before {
+  transform: rotate(90deg);
+  background-color: var(--ag-link);
 }
 
 .collapsible-chevron {
   display: inline-flex;
-  transition: transform 0.15s ease;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
   color: var(--ag-fg-muted);
 }
 
 details[open] .collapsible-chevron {
   transform: rotate(90deg);
+  color: var(--ag-link);
+}
+
+/* Hide pseudo ::before if custom .collapsible-chevron already exists */
+details:not(.frontmatter-card) > summary:has(.collapsible-chevron)::before {
+  display: none !important;
+}
+
+/* Distinct Header Divider when opened */
+details:not(.frontmatter-card)[open] > summary,
+.antigravity-collapsible[open] > .collapsible-summary {
+  border-bottom: 1px solid var(--ag-border-subtle);
+  background-color: var(--ag-surface-hover);
+}
+
+/* Clean Internal Body Padding & Spacing */
+details:not(.frontmatter-card) > :not(summary) {
+  margin-inline: 16px;
+}
+
+details:not(.frontmatter-card) > :not(summary):first-of-type {
+  margin-top: 14px;
+}
+
+details:not(.frontmatter-card) > :not(summary):last-child {
+  margin-bottom: 16px;
 }
 
 .collapsible-content {
-  padding: 12px 16px;
-  border-top: 1px solid var(--ag-border-subtle);
+  padding: 14px 18px;
   color: var(--ag-fg);
+  margin: 0 !important;
 }
 
 /* ==========================================================================
