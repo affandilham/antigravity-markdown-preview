@@ -125,5 +125,6 @@
     "type": "git",
     "url": "https://github.com/affandilham/antigravity-markdown-preview"
   },
-  "icon": "media/icon.png"
+  "icon": "media/icon.png",
+  "license": "MIT"
 }
