@@ -2106,11 +2106,18 @@
       });
     }
 
-    // Color picker dots
-    document.querySelectorAll('.draw-colors .color-dot').forEach((dot) => {
+    // Floating Dock isolation from canvas/viewport pan
+    const modalDock = document.getElementById('diagramModalDock');
+    if (modalDock) {
+      modalDock.addEventListener('mousedown', (e) => e.stopPropagation());
+      modalDock.addEventListener('pointerdown', (e) => e.stopPropagation());
+    }
+
+    // Color picker dots in floating dock
+    document.querySelectorAll('.color-dot').forEach((dot) => {
       dot.addEventListener('click', (e) => {
         e.stopPropagation();
-        document.querySelectorAll('.draw-colors .color-dot').forEach((d) => d.classList.remove('active'));
+        document.querySelectorAll('.color-dot').forEach((d) => d.classList.remove('active'));
         dot.classList.add('active');
         currentColor = dot.dataset.color || '#f85149';
         if (currentTool === 'pan') {
@@ -2169,7 +2176,7 @@
     // Pointer Drag (Pan) with mouse or single-touch drag
     modalViewport.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
-      if (e.target.closest('.modal-control-btn') || e.target.closest('.modal-zoom-indicator-btn') || e.target.closest('.diagram-modal-draw-tools')) return;
+      if (e.target.closest('.modal-control-btn') || e.target.closest('.modal-zoom-indicator-btn') || e.target.closest('.diagram-modal-dock') || e.target.closest('.diagram-modal-info-wrapper')) return;
       if (currentTool !== 'pan' && !isSpacePressed) return;
       isDraggingModal = true;
       dragStartPointer.x = e.clientX - modalTranslate.x;

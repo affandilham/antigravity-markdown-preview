@@ -634,72 +634,28 @@ export class MarkdownPreviewPanel {
         <span id="diagramModalTitle">Diagram Interactive View</span>
       </div>
 
-      <!-- Freehand Annotation / Draw Tools -->
-      <div class="diagram-modal-draw-tools" id="modalDrawTools">
-        <div class="draw-tool-group">
-          <button class="draw-tool-btn active" id="btnToolPan" title="Pan / Navigate Mode (V)" type="button">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M10 13a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-4-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm8 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-4-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-              <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zM2 8a6 6 0 1 1 12 0A6 6 0 0 1 2 8z"/>
-            </svg>
-            <span>Pan</span>
-          </button>
-          <button class="draw-tool-btn" id="btnToolPen" title="Pen (P) - Smooth Ink" type="button">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
-            </svg>
-            <span>Pen</span>
-          </button>
-          <button class="draw-tool-btn" id="btnToolHighlighter" title="Highlighter (H) - Semi-Transparent" type="button">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M14.086.146a.5.5 0 0 1 .707 0l1.061 1.06a.5.5 0 0 1 0 .708l-4.95 4.95-1.768-1.768 4.95-4.95zm-5.657 5.657 1.768 1.768-5.657 5.657a.5.5 0 0 1-.196.12l-3.535 1.414a.5.5 0 0 1-.646-.646l1.414-3.536a.5.5 0 0 1 .12-.196l5.657-5.657z"/>
-            </svg>
-            <span>Highlight</span>
-          </button>
-        </div>
-
-        <div class="draw-divider"></div>
-
-        <div class="draw-colors">
-          <button class="color-dot active" data-color="#f85149" style="background:#f85149;" title="Coral Red" type="button"></button>
-          <button class="color-dot" data-color="#58a6ff" style="background:#58a6ff;" title="Sky Blue" type="button"></button>
-          <button class="color-dot" data-color="#3fb950" style="background:#3fb950;" title="Emerald Green" type="button"></button>
-          <button class="color-dot" data-color="#e3b341" style="background:#e3b341;" title="Amber Yellow" type="button"></button>
-          <button class="color-dot" data-color="#bc8cff" style="background:#bc8cff;" title="Purple" type="button"></button>
-        </div>
-
-        <div class="draw-divider"></div>
-
-        <div class="draw-action-group">
-          <button class="draw-action-btn icon-only" id="btnDrawUndo" title="Undo Stroke (Cmd+Z / Ctrl+Z)" type="button">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-              <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
-            </svg>
-          </button>
-          <button class="draw-action-btn icon-only" id="btnDrawRedo" title="Redo Stroke (Cmd+Shift+Z / Ctrl+Y)" type="button">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
-              <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308c-.12.1-.12.284 0 .384L7.59 4.658A.25.25 0 0 0 8 4.466z"/>
-            </svg>
-          </button>
-          <button class="draw-action-btn icon-only" id="btnDrawClear" title="Clear All Drawings" type="button">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-              <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
-            </svg>
-          </button>
-          <button class="draw-action-btn" id="btnDrawExportPng" title="Copy Diagram with Annotations as PNG" type="button">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
-              <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
-            </svg>
-            <span>Copy PNG</span>
-          </button>
-        </div>
-      </div>
-
       <div class="diagram-modal-controls">
+        <div class="diagram-modal-info-wrapper">
+          <button class="modal-control-btn icon-only" id="btnModalInfo" title="Gestures & Shortcuts" type="button">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+              <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+            </svg>
+          </button>
+          <div class="diagram-modal-info-tooltip" id="modalInfoTooltip">
+            <div class="tooltip-title">Gestures & Shortcuts</div>
+            <div class="tooltip-grid">
+              <div class="tooltip-row"><span>Pan / Geser</span><kbd>V</kbd> or <kbd>Space</kbd> + Drag</div>
+              <div class="tooltip-row"><span>Pen / Coret</span><kbd>P</kbd></div>
+              <div class="tooltip-row"><span>Highlighter</span><kbd>H</kbd></div>
+              <div class="tooltip-row"><span>Undo</span><kbd>Cmd+Z</kbd></div>
+              <div class="tooltip-row"><span>Redo</span><kbd>Cmd+Shift+Z</kbd></div>
+              <div class="tooltip-row"><span>Zoom</span><kbd>+</kbd> / <kbd>-</kbd> / Pinch</div>
+              <div class="tooltip-row"><span>Fit View</span><kbd>F</kbd></div>
+              <div class="tooltip-row"><span>Close</span><kbd>Esc</kbd></div>
+            </div>
+          </div>
+        </div>
         <button class="modal-control-btn icon-only" id="btnModalZoomOut" title="Zoom Out (- / Scroll Down)" type="button">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
             <path d="M2 7.75A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.75z"/>
@@ -725,8 +681,69 @@ export class MarkdownPreviewPanel {
       <div class="diagram-modal-canvas" id="diagramModalCanvas"></div>
       <canvas class="diagram-draw-canvas" id="diagramDrawCanvas"></canvas>
     </div>
-    <div class="diagram-modal-hint">
-      <span>P / H: Draw / Highlight · V: Pan · Space + Drag: Pan · Cmd+Z: Undo · Cmd+Shift+Z: Redo · Esc: Close</span>
+    <!-- Floating Bottom Toolbar Dock (Figma Style) -->
+    <div class="diagram-modal-dock" id="diagramModalDock">
+      <div class="dock-segment">
+        <button class="dock-btn active" id="btnToolPan" title="Pan / Geser Mode (V)" type="button">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M10 13a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-4-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm8 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-4-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+            <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zM2 8a6 6 0 1 1 12 0A6 6 0 0 1 2 8z"/>
+          </svg>
+          <span>Pan</span>
+        </button>
+        <button class="dock-btn" id="btnToolPen" title="Draw Pen (P)" type="button">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+          </svg>
+          <span>Draw</span>
+        </button>
+        <button class="dock-btn" id="btnToolHighlighter" title="Highlighter (H)" type="button">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M14.086.146a.5.5 0 0 1 .707 0l1.061 1.06a.5.5 0 0 1 0 .708l-4.95 4.95-1.768-1.768 4.95-4.95zm-5.657 5.657 1.768 1.768-5.657 5.657a.5.5 0 0 1-.196.12l-3.535 1.414a.5.5 0 0 1-.646-.646l1.414-3.536a.5.5 0 0 1 .12-.196l5.657-5.657z"/>
+          </svg>
+          <span>Highlight</span>
+        </button>
+      </div>
+
+      <div class="dock-divider"></div>
+
+      <div class="dock-colors">
+        <button class="color-dot active" data-color="#f85149" style="background:#f85149;" title="Coral Red" type="button"></button>
+        <button class="color-dot" data-color="#58a6ff" style="background:#58a6ff;" title="Sky Blue" type="button"></button>
+        <button class="color-dot" data-color="#3fb950" style="background:#3fb950;" title="Emerald Green" type="button"></button>
+        <button class="color-dot" data-color="#e3b341" style="background:#e3b341;" title="Amber Yellow" type="button"></button>
+        <button class="color-dot" data-color="#bc8cff" style="background:#bc8cff;" title="Purple" type="button"></button>
+      </div>
+
+      <div class="dock-divider"></div>
+
+      <div class="dock-actions">
+        <button class="dock-btn icon-only" id="btnDrawUndo" title="Undo (Cmd+Z / Ctrl+Z)" type="button">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+            <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+          </svg>
+        </button>
+        <button class="dock-btn icon-only" id="btnDrawRedo" title="Redo (Cmd+Shift+Z / Ctrl+Y)" type="button">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+            <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
+            <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308c-.12.1-.12.284 0 .384L7.59 4.658A.25.25 0 0 0 8 4.466z"/>
+          </svg>
+        </button>
+        <button class="dock-btn icon-only" id="btnDrawClear" title="Clear All Drawings" type="button">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+          </svg>
+        </button>
+        <button class="dock-btn dock-btn-primary" id="btnDrawExportPng" title="Copy Diagram with Annotations as PNG" type="button">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+            <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+          </svg>
+          <span>Copy PNG</span>
+        </button>
+      </div>
     </div>
   </div>
 
