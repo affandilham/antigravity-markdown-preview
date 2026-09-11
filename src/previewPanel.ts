@@ -787,15 +787,15 @@ export class MarkdownPreviewPanel {
       <!-- 9. Color Shortcut & Dropdown Palette -->
       <div class="dock-colors-group" id="dockColorsGroup">
         <div class="dock-colors" id="dockColors">
-          <button class="color-dot" data-color="#ef4444" style="background:#ef4444;" title="Red" type="button" aria-label="Red color"></button>
-          <button class="color-dot" data-color="#3b82f6" style="background:#3b82f6;" title="Blue" type="button" aria-label="Blue color"></button>
-          <button class="color-dot" data-color="#22c55e" style="background:#22c55e;" title="Green" type="button" aria-label="Green color"></button>
-          <button class="color-dot active" data-color="#f59e0b" style="background:#f59e0b;" title="Orange" type="button" aria-label="Orange color"></button>
-          <button class="color-dot" data-color="#a855f7" style="background:#a855f7;" title="Purple" type="button" aria-label="Purple color"></button>
+          <button class="color-dot" data-color="#ea1c24" style="background:#ea1c24;" title="Red" type="button" aria-label="Red color"></button>
+          <button class="color-dot" data-color="#1576fe" style="background:#1576fe;" title="Blue" type="button" aria-label="Blue color"></button>
+          <button class="color-dot" data-color="#229b47" style="background:#229b47;" title="Green" type="button" aria-label="Green color"></button>
+          <button class="color-dot active" data-color="#fb980c" style="background:#fb980c;" title="Orange" type="button" aria-label="Orange color"></button>
+          <button class="color-dot" data-color="#8437ef" style="background:#8437ef;" title="Purple" type="button" aria-label="Purple color"></button>
         </div>
         <button class="color-chevron-btn" id="btnColorChevron" title="Full Color Palette & Custom Picker" type="button" aria-label="More colors">
-          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+          <svg width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1.5 1.5L6 6L10.5 1.5"/>
           </svg>
         </button>
       </div>
@@ -1031,11 +1031,11 @@ export class MarkdownPreviewPanel {
         <!-- Group 2: Color Swatches Row (Matching Reference) -->
         <div class="more-group more-group-colors" id="moreGroupColor" style="display:none;">
           <div class="more-colors-row" id="moreColorsRow">
-            <button class="color-dot" data-color="#ef4444" style="background:#ef4444;" title="Red" type="button" aria-label="Red"></button>
-            <button class="color-dot" data-color="#3b82f6" style="background:#3b82f6;" title="Blue" type="button" aria-label="Blue"></button>
-            <button class="color-dot" data-color="#22c55e" style="background:#22c55e;" title="Green" type="button" aria-label="Green"></button>
-            <button class="color-dot active" data-color="#f59e0b" style="background:#f59e0b;" title="Orange" type="button" aria-label="Orange"></button>
-            <button class="color-dot" data-color="#a855f7" style="background:#a855f7;" title="Purple" type="button" aria-label="Purple"></button>
+            <button class="color-dot" data-color="#ea1c24" style="background:#ea1c24;" title="Red" type="button" aria-label="Red"></button>
+            <button class="color-dot" data-color="#1576fe" style="background:#1576fe;" title="Blue" type="button" aria-label="Blue"></button>
+            <button class="color-dot" data-color="#229b47" style="background:#229b47;" title="Green" type="button" aria-label="Green"></button>
+            <button class="color-dot active" data-color="#fb980c" style="background:#fb980c;" title="Orange" type="button" aria-label="Orange"></button>
+            <button class="color-dot" data-color="#8437ef" style="background:#8437ef;" title="Purple" type="button" aria-label="Purple"></button>
           </div>
         </div>
 

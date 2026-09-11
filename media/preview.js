@@ -1374,14 +1374,14 @@
   // Diagram Annotation & Canvas Tools State (Desktop Pro Grade)
   // ==========================================================================
   let currentTool = 'pan'; // 'pan' | 'draw' | 'erase' | 'highlight' | 'shape' | 'arrow' | 'text'
-  let currentColor = '#f59e0b'; // default orange swatch as in reference
+  let currentColor = '#fb980c'; // default orange swatch as in reference
   let activeStrokeSize = 5; // 1 - 50 px, default 5
   let highlighterSize = 20; // default 20 px
   let currentShape = 'rect'; // 'rect' | 'circle' | 'ellipse' | 'line' | 'roundrect' | 'freeform'
   let activeFontSize = 16; // 8 - 72 px, default 16
   let fontStyle = { bold: false, italic: false, underline: false };
 
-  let recentColors = ['#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#374151', '#9ca3af'];
+  let recentColors = ['#fb980c', '#ea1c24', '#1576fe', '#229b47', '#8437ef', '#374151', '#9ca3af'];
   const defaultPalette = [
     '#ef4444', '#f87171', '#f97316', '#fbbf24', '#a3e635', '#22c55e', '#06b6d4',
     '#3b82f6', '#6366f1', '#a855f7', '#f472b6', '#78350f', '#000000', '#ffffff'
