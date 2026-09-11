@@ -1437,12 +1437,28 @@
   const btnDrawDelete = document.getElementById('btnDrawDelete');
   const btnDrawExportPng = document.getElementById('btnDrawExportPng');
   const btnCopyPngLabel = document.getElementById('btnCopyPngLabel');
+  const btnDockMore = document.getElementById('btnDockMore');
 
   // Popover Elements
   const popoverDraw = document.getElementById('popoverDraw');
   const popoverShapes = document.getElementById('popoverShapes');
   const popoverText = document.getElementById('popoverText');
   const popoverCustomColor = document.getElementById('popoverCustomColor');
+  const popoverMore = document.getElementById('popoverMore');
+
+  // Popover More Sub-elements
+  const btnMoreShape = document.getElementById('btnMoreShape');
+  const btnMoreArrow = document.getElementById('btnMoreArrow');
+  const btnMoreText = document.getElementById('btnMoreText');
+  const btnMoreUndo = document.getElementById('btnMoreUndo');
+  const btnMoreRedo = document.getElementById('btnMoreRedo');
+  const btnMoreDelete = document.getElementById('btnMoreDelete');
+  const btnMoreExportPng = document.getElementById('btnMoreExportPng');
+
+  // Auto-Hide Elements & State
+  const dockAutoHideTab = document.getElementById('dockAutoHideTab');
+  let isDockAutoHidden = false;
+  let dockAutoHideTimer = null;
 
   // Inputs
   const drawStrokeNumber = document.getElementById('drawStrokeNumber');
@@ -1519,6 +1535,51 @@
     modalTranslate.x = Math.round((vWidth - currentDiagramWidth) / 2);
     modalTranslate.y = Math.round((vHeight - currentDiagramHeight) / 2);
     applyModalTransform();
+  }
+
+  function showDock() {
+    if (!diagramModalDock) return;
+    isDockAutoHidden = false;
+    diagramModalDock.classList.remove('is-autohidden');
+    if (dockAutoHideTab) {
+      dockAutoHideTab.classList.remove('visible');
+      setTimeout(() => {
+        if (!isDockAutoHidden && dockAutoHideTab) {
+          dockAutoHideTab.style.display = 'none';
+        }
+      }, 220);
+    }
+  }
+
+  function hideDock() {
+    if (!diagramModalDock || isDockAutoHidden || isDraggingDock) return;
+    if (activePopoverId) return;
+    isDockAutoHidden = true;
+    closeAllPopovers();
+    if (diagramModalDock.style.top && diagramModalDock.style.top !== 'auto') {
+      diagramModalDock.classList.add('has-custom-pos');
+    } else {
+      diagramModalDock.classList.remove('has-custom-pos');
+    }
+    diagramModalDock.classList.add('is-autohidden');
+    if (dockAutoHideTab) {
+      dockAutoHideTab.style.display = 'inline-flex';
+      requestAnimationFrame(() => {
+        dockAutoHideTab.classList.add('visible');
+      });
+    }
+  }
+
+  function resetDockAutoHideTimer() {
+    if (dockAutoHideTimer) {
+      clearTimeout(dockAutoHideTimer);
+      dockAutoHideTimer = null;
+    }
+    if (currentTool !== 'pan' && !activePopoverId && !isDockAutoHidden && !isDraggingDock) {
+      dockAutoHideTimer = setTimeout(() => {
+        hideDock();
+      }, 4000);
+    }
   }
 
   function openDiagramModal(element, title = 'Diagram Interactive View') {
@@ -1615,6 +1676,7 @@
     // Initialize annotation canvas layer AFTER viewport is active and computed
     initDrawCanvas();
     fitModalDiagram();
+    showDock();
     syncDockResponsiveLayout();
 
     // Re-fit and sync canvas in next frame to ensure geometry is 100% computed
@@ -1642,6 +1704,17 @@
       diagramModalDock.style.bottom = '';
       diagramModalDock.style.transform = '';
       diagramModalDock.classList.remove('dragging');
+      diagramModalDock.classList.remove('is-autohidden');
+      diagramModalDock.classList.remove('has-custom-pos');
+    }
+    isDockAutoHidden = false;
+    if (dockAutoHideTimer) {
+      clearTimeout(dockAutoHideTimer);
+      dockAutoHideTimer = null;
+    }
+    if (dockAutoHideTab) {
+      dockAutoHideTab.classList.remove('visible');
+      dockAutoHideTab.style.display = 'none';
     }
 
     document.body.classList.remove('modal-open');
@@ -1704,11 +1777,16 @@
     const data = getDiagramData();
     if (btnDrawUndo) btnDrawUndo.disabled = data.historyIndex <= 0;
     if (btnDrawRedo) btnDrawRedo.disabled = data.historyIndex >= data.history.length - 1;
+    if (btnMoreUndo) btnMoreUndo.disabled = data.historyIndex <= 0;
+    if (btnMoreRedo) btnMoreRedo.disabled = data.historyIndex >= data.history.length - 1;
   }
 
   function updateDeleteButtonState() {
     if (btnDrawDelete) {
       btnDrawDelete.disabled = !selectedItemId;
+    }
+    if (btnMoreDelete) {
+      btnMoreDelete.disabled = !selectedItemId;
     }
   }
 
@@ -1764,6 +1842,10 @@
     if (btnToolShape) btnToolShape.classList.toggle('active', tool === 'shape');
     if (btnToolArrow) btnToolArrow.classList.toggle('active', tool === 'arrow');
     if (btnToolText) btnToolText.classList.toggle('active', tool === 'text');
+    if (btnDockMore) {
+      const isCollapsed = diagramModalDock && diagramModalDock.classList.contains('dock-collapsed');
+      btnDockMore.classList.toggle('active', isCollapsed && ['shape', 'arrow', 'text'].includes(tool));
+    }
 
     // Deselect active object when switching to creation tools
     if (tool !== 'pan' && selectedItemId) {
@@ -2097,6 +2179,12 @@
       dot.classList.toggle('active', c === currentColor);
     });
 
+    const moreColorDots = document.querySelectorAll('#moreColorsRow .color-dot');
+    moreColorDots.forEach(dot => {
+      const c = (dot.dataset.color || '').toLowerCase();
+      dot.classList.toggle('active', c === currentColor);
+    });
+
     // Update custom color picker state
     const hsv = hexToHsv(currentColor);
     currentHue = hsv.h;
@@ -2206,7 +2294,7 @@
 
   // Popovers Positioning & Lifecycle Management
   function closeAllPopovers() {
-    [popoverDraw, popoverShapes, popoverText, popoverCustomColor].forEach(p => {
+    [popoverDraw, popoverShapes, popoverText, popoverCustomColor, popoverMore].forEach(p => {
       if (p) p.style.display = 'none';
     });
     activePopoverId = null;
@@ -2285,6 +2373,11 @@
 
       // Close popovers on canvas interaction
       closeAllPopovers();
+
+      // Auto-hide dock when drawing or interacting in non-pan mode
+      if (currentTool !== 'pan') {
+        hideDock();
+      }
 
       const data = getDiagramData();
 
@@ -3595,6 +3688,16 @@
       const availWidth = modalOverlay.clientWidth || window.innerWidth;
       const dockScrollWidth = diagramModalDock.scrollWidth;
 
+      // Auto-collapse into More (•••) menu when width < 860px
+      if (availWidth < 860) {
+        diagramModalDock.classList.add('dock-collapsed');
+      } else {
+        diagramModalDock.classList.remove('dock-collapsed');
+        if (activePopoverId === 'popoverMore') {
+          closeAllPopovers();
+        }
+      }
+
       if (availWidth < 880 || dockScrollWidth > availWidth - 24) {
         diagramModalDock.classList.add('dock-compact');
       } else {
@@ -3700,12 +3803,120 @@
     }
 
     // Popovers Isolation
-    [popoverDraw, popoverShapes, popoverText, popoverCustomColor].forEach(p => {
+    [popoverDraw, popoverShapes, popoverText, popoverCustomColor, popoverMore].forEach(p => {
       if (p) {
         p.addEventListener('pointerdown', (e) => e.stopPropagation());
         p.addEventListener('mousedown', (e) => e.stopPropagation());
       }
     });
+
+    // Popover More trigger & action handlers
+    if (btnDockMore) {
+      btnDockMore.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showDock();
+        togglePopover(popoverMore, btnDockMore);
+      });
+    }
+
+    if (btnMoreShape) {
+      btnMoreShape.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllPopovers();
+        setDrawingTool('shape');
+        togglePopover(popoverShapes, btnDockMore);
+      });
+    }
+
+    if (btnMoreArrow) {
+      btnMoreArrow.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllPopovers();
+        setDrawingTool('arrow');
+      });
+    }
+
+    if (btnMoreText) {
+      btnMoreText.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllPopovers();
+        setDrawingTool('text');
+        togglePopover(popoverText, btnDockMore);
+      });
+    }
+
+    const moreColorDots = document.querySelectorAll('#moreColorsRow .color-dot');
+    moreColorDots.forEach(dot => {
+      dot.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const c = dot.dataset.color;
+        if (c) setActiveColor(c);
+      });
+    });
+
+    if (btnMoreUndo) {
+      btnMoreUndo.addEventListener('click', (e) => {
+        e.stopPropagation();
+        undo();
+      });
+    }
+
+    if (btnMoreRedo) {
+      btnMoreRedo.addEventListener('click', (e) => {
+        e.stopPropagation();
+        redo();
+      });
+    }
+
+    if (btnMoreDelete) {
+      btnMoreDelete.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteSelectedItem();
+        closeAllPopovers();
+      });
+    }
+
+    if (btnMoreExportPng) {
+      btnMoreExportPng.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllPopovers();
+        exportAnnotatedDiagramPng();
+      });
+    }
+
+    // Auto-Hide Tab & Viewport Hover Handlers
+    if (dockAutoHideTab) {
+      dockAutoHideTab.addEventListener('mouseenter', () => showDock());
+      dockAutoHideTab.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showDock();
+      });
+    }
+
+    if (diagramModalDock) {
+      diagramModalDock.addEventListener('mouseenter', () => {
+        if (dockAutoHideTimer) {
+          clearTimeout(dockAutoHideTimer);
+          dockAutoHideTimer = null;
+        }
+        showDock();
+      });
+      diagramModalDock.addEventListener('mouseleave', () => {
+        resetDockAutoHideTimer();
+      });
+    }
+
+    if (modalViewport) {
+      modalViewport.addEventListener('pointermove', (e) => {
+        const vpRect = modalViewport.getBoundingClientRect();
+        const distFromBottom = vpRect.bottom - e.clientY;
+        if (distFromBottom <= 70) {
+          showDock();
+        } else if (!isDockAutoHidden) {
+          resetDockAutoHideTimer();
+        }
+      });
+    }
 
     // Close popovers on click outside
     document.addEventListener('pointerdown', (e) => {

@@ -741,6 +741,19 @@ export class MarkdownPreviewPanel {
         <span>Highlight</span>
       </button>
 
+      <!-- Collapsed More Button Divider & Trigger -->
+      <div class="dock-divider dock-collapse-divider"></div>
+      <button class="dock-btn dock-collapse-trigger" id="btnDockMore" title="More Tools (•••)" type="button" aria-label="More tools" aria-haspopup="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="5" cy="12" r="2"/>
+          <circle cx="12" cy="12" r="2"/>
+          <circle cx="19" cy="12" r="2"/>
+        </svg>
+        <span>More</span>
+      </button>
+
+      <!-- Collapsible Tools Group (Shape through Copy PNG) -->
+      <div class="dock-collapsable-group" id="dockCollapsableGroup">
       <!-- 6. Shape Tool with Popover -->
       <div class="dock-tool-wrapper">
         <button class="dock-btn" id="btnToolShape" title="Shapes (S)" type="button" aria-label="Shape tool" aria-haspopup="true">
@@ -830,7 +843,15 @@ export class MarkdownPreviewPanel {
         </svg>
         <span id="btnCopyPngLabel">Copy PNG</span>
       </button>
+      </div>
     </div>
+
+    <!-- Floating Auto-Hide Tab (Show Toolbar) -->
+    <button class="dock-autohide-tab" id="dockAutoHideTab" type="button" title="Show Annotation Toolbar" aria-label="Show toolbar" style="display:none;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="18 15 12 9 6 15"/>
+      </svg>
+    </button>
 
     <!-- Popover 1: Draw Settings -->
     <div class="dock-popover" id="popoverDraw" aria-label="Draw settings" style="display:none;">
@@ -963,6 +984,63 @@ export class MarkdownPreviewPanel {
             <input type="text" id="colorPickerHexInput" maxlength="6" value="F59E0B" spellcheck="false" />
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Popover 5: More Tools & Actions (Collapsed Mode) -->
+    <div class="dock-popover" id="popoverMore" aria-label="More tools" style="display:none;">
+      <div class="popover-arrow" id="popoverMoreArrow"></div>
+      <div class="popover-section" style="padding: 2px 0;">
+        <button class="more-menu-item" id="btnMoreShape" type="button" aria-label="Shapes">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+          <span>Shape</span>
+        </button>
+        <button class="more-menu-item" id="btnMoreArrow" type="button" aria-label="Arrow">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+          <span>Arrow</span>
+        </button>
+        <button class="more-menu-item" id="btnMoreText" type="button" aria-label="Text">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" x2="15" y1="20" y2="20"/><line x1="12" x2="12" y1="4" y2="20"/></svg>
+          <span>Text</span>
+        </button>
+      </div>
+
+      <div class="popover-divider"></div>
+
+      <div class="popover-section" style="padding: 2px 4px;">
+        <div class="more-colors-row" id="moreColorsRow">
+          <button class="color-dot" data-color="#ef4444" style="background:#ef4444;" title="Red" type="button" aria-label="Red"></button>
+          <button class="color-dot" data-color="#3b82f6" style="background:#3b82f6;" title="Blue" type="button" aria-label="Blue"></button>
+          <button class="color-dot" data-color="#22c55e" style="background:#22c55e;" title="Green" type="button" aria-label="Green"></button>
+          <button class="color-dot active" data-color="#f59e0b" style="background:#f59e0b;" title="Orange" type="button" aria-label="Orange"></button>
+          <button class="color-dot" data-color="#a855f7" style="background:#a855f7;" title="Purple" type="button" aria-label="Purple"></button>
+        </div>
+      </div>
+
+      <div class="popover-divider"></div>
+
+      <div class="popover-section" style="padding: 2px 0;">
+        <button class="more-menu-item" id="btnMoreUndo" type="button" aria-label="Undo" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+          <span>Undo</span>
+        </button>
+        <button class="more-menu-item" id="btnMoreRedo" type="button" aria-label="Redo" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>
+          <span>Redo</span>
+        </button>
+        <button class="more-menu-item" id="btnMoreDelete" type="button" aria-label="Delete" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+          <span>Delete</span>
+        </button>
+      </div>
+
+      <div class="popover-divider"></div>
+
+      <div class="popover-section" style="padding: 4px 6px 2px 6px;">
+        <button class="dock-btn dock-btn-primary" id="btnMoreExportPng" type="button" style="width: 100%; justify-content: center; height: 32px;" aria-label="Copy PNG">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+          <span>Copy PNG</span>
+        </button>
       </div>
     </div>
 
