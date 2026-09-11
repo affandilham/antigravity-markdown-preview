@@ -2233,7 +2233,10 @@
     plusBtn.innerHTML = '+';
     plusBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      togglePopover(popoverCustomColor, plusBtn);
+      // Anchor to the dock's Draw button so popoverCustomColor opens cleanly above the dock
+      // instead of jumping to the top of the viewport when popoverDraw closes
+      const anchor = (btnToolDraw && btnToolDraw.isConnected) ? btnToolDraw : plusBtn;
+      togglePopover(popoverCustomColor, anchor);
     });
     container.appendChild(plusBtn);
   }
@@ -2288,9 +2291,20 @@
     const popoverEl = document.getElementById(activePopoverId);
     if (!popoverEl || popoverEl.style.display === 'none') return;
 
-    const btnRect = activePopoverAnchorEl.getBoundingClientRect();
+    let btnRect = activePopoverAnchorEl.getBoundingClientRect();
     const parentEl = popoverEl.offsetParent || modalOverlay || document.body;
     const parentRect = parentEl.getBoundingClientRect();
+
+    // Guard: If anchor element is hidden or has 0 dimensions (e.g. child inside closed popover),
+    // fallback to a visible dock button or the dock container
+    if (btnRect.width === 0 && btnRect.height === 0) {
+      if (btnToolDraw && btnToolDraw.getBoundingClientRect().width > 0) {
+        btnRect = btnToolDraw.getBoundingClientRect();
+      } else if (diagramModalDock && diagramModalDock.getBoundingClientRect().width > 0) {
+        btnRect = diagramModalDock.getBoundingClientRect();
+      }
+    }
+
     const popW = popoverEl.offsetWidth || 200;
     const popH = popoverEl.offsetHeight || 220;
 
