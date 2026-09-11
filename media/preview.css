@@ -2238,7 +2238,9 @@ body[data-vscode-theme-kind*="dark"] .popover-number-wrap input[type="number"]:f
 .popover-slider-row .range-bound {
   font-size: 11px;
   color: #9ca3af;
-  min-width: 14px;
+  min-width: 26px;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 .popover-slider-row input[type="range"] {
@@ -2860,8 +2862,6 @@ body[data-vscode-theme-kind*="dark"] .canvas-inline-text-editor {
 
 .diagram-modal-viewport.mode-draw,
 .diagram-modal-viewport.mode-draw .diagram-draw-canvas,
-.diagram-modal-viewport.mode-highlight,
-.diagram-modal-viewport.mode-highlight .diagram-draw-canvas,
 .diagram-modal-viewport.mode-shape,
 .diagram-modal-viewport.mode-shape .diagram-draw-canvas,
 .diagram-modal-viewport.mode-arrow,

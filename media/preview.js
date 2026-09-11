@@ -1373,10 +1373,10 @@
   // ==========================================================================
   // Diagram Annotation & Canvas Tools State (Desktop Pro Grade)
   // ==========================================================================
-  let currentTool = 'pan'; // 'pan' | 'draw' | 'erase' | 'highlight' | 'shape' | 'arrow' | 'text'
+  let currentTool = 'pan'; // 'pan' | 'draw' | 'erase' | 'shape' | 'arrow' | 'text'
   let currentColor = '#fb980c'; // default orange swatch as in reference
   let activeStrokeSize = 5; // 1 - 50 px, default 5
-  let highlighterSize = 20; // default 20 px
+  let activeDrawOpacity = 100; // 5 - 100 %, default 100
   let currentShape = 'rect'; // 'rect' | 'circle' | 'ellipse' | 'line' | 'roundrect' | 'freeform'
   let activeFontSize = 16; // 8 - 72 px, default 16
   let fontStyle = { bold: false, italic: false, underline: false };
@@ -1430,7 +1430,6 @@
   const dockToolDrawWrapper = document.getElementById('dockToolDrawWrapper');
   const btnToolDraw = document.getElementById('btnToolDraw');
   const btnToolErase = document.getElementById('btnToolErase');
-  const btnToolHighlight = document.getElementById('btnToolHighlight');
   const dockDividerShapes = document.getElementById('dockDividerShapes');
   const dockToolShapeWrapper = document.getElementById('dockToolShapeWrapper');
   const btnToolShape = document.getElementById('btnToolShape');
@@ -1486,6 +1485,8 @@
   // Inputs
   const drawStrokeNumber = document.getElementById('drawStrokeNumber');
   const drawStrokeSlider = document.getElementById('drawStrokeSlider');
+  const drawOpacityNumber = document.getElementById('drawOpacityNumber');
+  const drawOpacitySlider = document.getElementById('drawOpacitySlider');
   const eraseSizeNumber = document.getElementById('eraseSizeNumber');
   const eraseSizeSlider = document.getElementById('eraseSizeSlider');
   let activeEraserSize = 20;
@@ -1812,7 +1813,6 @@
     if (btnToolPan) btnToolPan.classList.toggle('active', tool === 'pan');
     if (btnToolDraw) btnToolDraw.classList.toggle('active', tool === 'draw');
     if (btnToolErase) btnToolErase.classList.toggle('active', tool === 'erase');
-    if (btnToolHighlight) btnToolHighlight.classList.toggle('active', tool === 'highlight');
     if (btnToolShape) btnToolShape.classList.toggle('active', tool === 'shape');
     if (btnToolArrow) btnToolArrow.classList.toggle('active', tool === 'arrow');
     if (btnToolText) btnToolText.classList.toggle('active', tool === 'text');
@@ -1831,7 +1831,7 @@
   function updateDrawingCursor() {
     if (!modalViewport || !drawCanvas) return;
     modalViewport.classList.remove(
-      'mode-pan', 'mode-draw', 'mode-erase', 'mode-highlight',
+      'mode-pan', 'mode-draw', 'mode-erase',
       'mode-shape', 'mode-arrow', 'mode-text', 'space-panning'
     );
 
@@ -1852,9 +1852,6 @@
         break;
       case 'erase':
         modalViewport.classList.add('mode-erase');
-        break;
-      case 'highlight':
-        modalViewport.classList.add('mode-highlight');
         break;
       case 'shape':
         modalViewport.classList.add('mode-shape');
@@ -2501,14 +2498,14 @@
       isDrawing = true;
       try { drawCanvas.setPointerCapture(e.pointerId); } catch (_) {}
 
-      if (currentTool === 'draw' || currentTool === 'highlight') {
-        const size = currentTool === 'highlight' ? highlighterSize : activeStrokeSize;
+      if (currentTool === 'draw') {
         currentPreviewItem = {
           id: 'stroke_' + Math.random().toString(36).slice(2, 9),
           type: 'stroke',
-          tool: currentTool,
+          tool: 'draw',
           color: currentColor,
-          size: size,
+          size: activeStrokeSize,
+          opacity: activeDrawOpacity / 100,
           points: [{ x: pos.x, y: pos.y }]
         };
       } else if (currentTool === 'shape') {
@@ -2776,7 +2773,7 @@
 
         drawCtx.lineCap = 'round';
         drawCtx.lineJoin = 'round';
-        drawCtx.globalAlpha = item.tool === 'highlight' ? 0.35 : 1.0;
+        drawCtx.globalAlpha = (item.opacity !== undefined) ? item.opacity : (item.tool === 'highlight' ? 0.35 : 1.0);
         drawCtx.lineWidth = item.size;
         drawCtx.strokeStyle = item.color;
         drawCtx.fillStyle = item.color;
@@ -3130,7 +3127,7 @@
           if (pts && pts.length > 0) {
             offCtx.lineCap = 'round';
             offCtx.lineJoin = 'round';
-            offCtx.globalAlpha = item.tool === 'highlight' ? 0.35 : 1.0;
+            offCtx.globalAlpha = (item.opacity !== undefined) ? item.opacity : (item.tool === 'highlight' ? 0.35 : 1.0);
             offCtx.lineWidth = item.size;
             offCtx.strokeStyle = item.color;
             offCtx.fillStyle = item.color;
@@ -3407,14 +3404,6 @@
       });
     }
 
-    if (btnToolHighlight) {
-      btnToolHighlight.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeAllPopovers();
-        setDrawingTool('highlight');
-      });
-    }
-
     if (btnToolShape) {
       btnToolShape.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -3447,7 +3436,7 @@
       });
     }
 
-    // 2. Stroke Size Numeric & Slider 2-Way Sync
+    // 2. Stroke Size & Opacity Numeric & Slider 2-Way Sync
     if (drawStrokeSlider && drawStrokeNumber) {
       drawStrokeSlider.addEventListener('input', (e) => {
         e.stopPropagation();
@@ -3460,6 +3449,21 @@
         const val = Math.max(1, Math.min(50, parseInt(drawStrokeNumber.value) || 5));
         activeStrokeSize = val;
         drawStrokeSlider.value = val;
+      });
+    }
+
+    if (drawOpacitySlider && drawOpacityNumber) {
+      drawOpacitySlider.addEventListener('input', (e) => {
+        e.stopPropagation();
+        activeDrawOpacity = Math.max(5, Math.min(100, parseInt(drawOpacitySlider.value) || 100));
+        drawOpacityNumber.value = activeDrawOpacity;
+      });
+
+      drawOpacityNumber.addEventListener('input', (e) => {
+        e.stopPropagation();
+        const val = Math.max(5, Math.min(100, parseInt(drawOpacityNumber.value) || 100));
+        activeDrawOpacity = val;
+        drawOpacitySlider.value = val;
       });
     }
 
@@ -3652,7 +3656,6 @@
       dividerCore: 13,
       draw: 80,
       erase: 82,
-      highlight: 94,
       dividerShapes: 13,
       shape: 82,
       arrow: 76,
@@ -3678,7 +3681,6 @@
         if (btnToolPan && btnToolPan.offsetWidth) naturalItemWidths.pan = btnToolPan.offsetWidth + 4;
         if (dockToolDrawWrapper && dockToolDrawWrapper.offsetWidth) naturalItemWidths.draw = dockToolDrawWrapper.offsetWidth + 4;
         if (btnToolErase && btnToolErase.offsetWidth) naturalItemWidths.erase = btnToolErase.offsetWidth + 4;
-        if (btnToolHighlight && btnToolHighlight.offsetWidth) naturalItemWidths.highlight = btnToolHighlight.offsetWidth + 4;
         if (dockToolShapeWrapper && dockToolShapeWrapper.offsetWidth) naturalItemWidths.shape = dockToolShapeWrapper.offsetWidth + 4;
         if (btnToolArrow && btnToolArrow.offsetWidth) naturalItemWidths.arrow = btnToolArrow.offsetWidth + 4;
         if (dockToolTextWrapper && dockToolTextWrapper.offsetWidth) naturalItemWidths.text = dockToolTextWrapper.offsetWidth + 4;
@@ -3700,7 +3702,7 @@
       const availWidth = Math.max(280, containerW - 32);
 
       const baseWidth = naturalItemWidths.dragHandle + naturalItemWidths.pan + naturalItemWidths.dividerCore +
-        naturalItemWidths.draw + naturalItemWidths.erase + naturalItemWidths.highlight + naturalItemWidths.dockPadding;
+        naturalItemWidths.draw + naturalItemWidths.erase + naturalItemWidths.dockPadding;
 
       const allCollapsableWidth = naturalItemWidths.dividerShapes + naturalItemWidths.shape +
         naturalItemWidths.arrow + naturalItemWidths.text + naturalItemWidths.dividerColors +
@@ -4266,8 +4268,7 @@
         setDrawingTool('draw');
       } else if (e.key === 'e' || e.key === 'E') {
         setDrawingTool('erase');
-      } else if (e.key === 'h' || e.key === 'H') {
-        setDrawingTool('highlight');
+
       } else if (e.key === 's' || e.key === 'S') {
         setDrawingTool('shape');
       } else if (e.key === 'a' || e.key === 'A') {

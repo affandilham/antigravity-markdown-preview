@@ -648,7 +648,6 @@ export class MarkdownPreviewPanel {
             <div class="tooltip-grid">
               <div class="tooltip-row"><span>Pan / Geser</span><kbd>V</kbd> or <kbd>Space</kbd> + Drag</div>
               <div class="tooltip-row"><span>Pen / Coret</span><kbd>P</kbd></div>
-              <div class="tooltip-row"><span>Highlighter</span><kbd>H</kbd></div>
               <div class="tooltip-row"><span>Undo</span><kbd>Cmd+Z</kbd></div>
               <div class="tooltip-row"><span>Redo</span><kbd>Cmd+Shift+Z</kbd></div>
               <div class="tooltip-row"><span>Zoom</span><kbd>+</kbd> / <kbd>-</kbd> / Pinch</div>
@@ -736,15 +735,6 @@ export class MarkdownPreviewPanel {
           </svg>
         </button>
       </div>
-
-      <!-- 5. Highlight Tool -->
-      <button class="dock-btn" id="btnToolHighlight" title="Highlighter (H)" type="button" aria-label="Highlighter tool">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m9 11-6 6v3h3l6-6"/>
-          <path d="m22 7-4.5-4.5a2.12 2.12 0 0 0-3 0l-1.5 1.5 7.5 7.5 1.5-1.5a2.12 2.12 0 0 0 0-3z"/>
-        </svg>
-        <span>Highlight</span>
-      </button>
 
       <div class="dock-divider" id="dockDividerShapes"></div>
 
@@ -865,6 +855,21 @@ export class MarkdownPreviewPanel {
           <span class="range-bound">1</span>
           <input type="range" id="drawStrokeSlider" min="1" max="50" value="5" />
           <span class="range-bound">50</span>
+        </div>
+      </div>
+
+      <div class="popover-section">
+        <div class="popover-row-header">
+          <span class="popover-label">Opacity</span>
+          <div class="popover-number-wrap">
+            <input type="number" id="drawOpacityNumber" min="5" max="100" step="5" value="100" />
+            <span class="unit">%</span>
+          </div>
+        </div>
+        <div class="popover-slider-row">
+          <span class="range-bound">5%</span>
+          <input type="range" id="drawOpacitySlider" min="5" max="100" step="5" value="100" />
+          <span class="range-bound">100%</span>
         </div>
       </div>
 
