@@ -1398,6 +1398,7 @@
   let itemInitialState = null;
   let hasItemModified = false;
   let eraseOccurred = false;
+  let lastErasePos = null;
 
   let activePopoverId = null;
   let activePopoverAnchorEl = null;
@@ -2042,38 +2043,122 @@
     return false;
   }
 
-  function getResizeHandleAtPoint(bounds, pos, tolerance = 10) {
-    if (!bounds || bounds.width <= 0 || bounds.height <= 0) return null;
-    const handles = {
-      nw: { x: bounds.x, y: bounds.y },
-      ne: { x: bounds.x + bounds.width, y: bounds.y },
-      se: { x: bounds.x + bounds.width, y: bounds.y + bounds.height },
-      sw: { x: bounds.x, y: bounds.y + bounds.height }
-    };
-    for (const [type, pt] of Object.entries(handles)) {
-      if (Math.hypot(pos.x - pt.x, pos.y - pt.y) <= tolerance / modalScale) {
-        return type;
+  // Point densification for smooth interpolation and precise partial erasing
+  function densifyPoints(points, maxSpacing = 3) {
+    if (!points || points.length <= 1) return points ? [...points] : [];
+    const dense = [points[0]];
+    for (let i = 0; i < points.length - 1; i++) {
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      if (dist > maxSpacing) {
+        const steps = Math.ceil(dist / maxSpacing);
+        for (let s = 1; s < steps; s++) {
+          const t = s / steps;
+          dense.push({
+            x: p1.x + (p2.x - p1.x) * t,
+            y: p1.y + (p2.y - p1.y) * t
+          });
+        }
       }
+      dense.push(p2);
     }
-    return null;
+    return dense;
   }
 
-  // Eraser Execution
-  function eraseAtPoint(pos) {
+  // Segment-level partial eraser: only erases intersecting points of freehand strokes
+  function eraseAlongPath(pPrev, pCurr) {
+    if (!pCurr) return false;
+    const pStart = pPrev || pCurr;
     const data = getDiagramData();
-    const prevLen = data.items.length;
-    const remaining = data.items.filter(item => !hitTestItem(item, pos, 14));
-    if (remaining.length !== prevLen) {
-      if (selectedItemId && !remaining.find(i => i.id === selectedItemId)) {
-        selectedItemId = null;
-        updateDeleteButtonState();
+    if (!data.items || data.items.length === 0) return false;
+
+    const eraseRadius = Math.max(6, 12 / modalScale);
+    let changed = false;
+    const nextItems = [];
+
+    const pad = eraseRadius + 30;
+    const sweptMinX = Math.min(pStart.x, pCurr.x) - pad;
+    const sweptMaxX = Math.max(pStart.x, pCurr.x) + pad;
+    const sweptMinY = Math.min(pStart.y, pCurr.y) - pad;
+    const sweptMaxY = Math.max(pStart.y, pCurr.y) + pad;
+
+    for (const item of data.items) {
+      // 1. Freehand strokes and freeform shapes: erase only intersecting path segments
+      const isFreehand = item.type === 'stroke' || (item.type === 'shape' && item.shapeType === 'freeform');
+      if (isFreehand && item.points && item.points.length > 0) {
+        const b = getItemBounds(item);
+        if (b.x > sweptMaxX || b.x + b.width < sweptMinX ||
+            b.y > sweptMaxY || b.y + b.height < sweptMinY) {
+          nextItems.push(item);
+          continue;
+        }
+
+        const strokeWidth = item.size || item.strokeWidth || 4;
+        const threshold = eraseRadius + strokeWidth / 2;
+        const dense = densifyPoints(item.points, Math.max(1.5, 3 / modalScale));
+
+        const keptSegments = [];
+        let currentSegment = [];
+        let itemErased = false;
+
+        for (let i = 0; i < dense.length; i++) {
+          const pt = dense[i];
+          const dist = distToSegment(pt, pStart, pCurr);
+          if (dist > threshold) {
+            currentSegment.push(pt);
+          } else {
+            itemErased = true;
+            if (currentSegment.length > 0) {
+              keptSegments.push(currentSegment);
+              currentSegment = [];
+            }
+          }
+        }
+        if (currentSegment.length > 0) {
+          keptSegments.push(currentSegment);
+        }
+
+        if (!itemErased) {
+          nextItems.push(item);
+        } else {
+          changed = true;
+          for (const seg of keptSegments) {
+            if (seg.length >= 2 || (seg.length === 1 && item.points.length === 1)) {
+              nextItems.push({
+                ...item,
+                id: `${item.type}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                points: seg
+              });
+            }
+          }
+        }
+        continue;
       }
-      data.items = remaining;
+
+      // 2. Atomic shapes (rect, circle, arrow, line, text): erase when path intersects
+      const hitStart = hitTestItem(item, pStart, eraseRadius);
+      const hitEnd = hitTestItem(item, pCurr, eraseRadius);
+      const hitMid = hitTestItem(item, { x: (pStart.x + pCurr.x) / 2, y: (pStart.y + pCurr.y) / 2 }, eraseRadius);
+
+      if (hitStart || hitEnd || hitMid) {
+        changed = true;
+      } else {
+        nextItems.push(item);
+      }
+    }
+
+    if (changed) {
+      data.items = nextItems;
       eraseOccurred = true;
       redrawAnnotations();
       return true;
     }
     return false;
+  }
+
+  function eraseAtPoint(pos) {
+    return eraseAlongPath(pos, pos);
   }
 
   // Color Utilities
@@ -2370,8 +2455,10 @@
         e.preventDefault();
         e.stopPropagation();
         isDrawing = true;
+        eraseOccurred = false;
+        lastErasePos = { x: pos.x, y: pos.y };
         try { drawCanvas.setPointerCapture(e.pointerId); } catch (_) {}
-        eraseAtPoint(pos);
+        eraseAlongPath(pos, pos);
         return;
       }
 
@@ -2447,7 +2534,8 @@
         e.preventDefault();
         e.stopPropagation();
         const pos = getUnscaledCoords(e);
-        eraseAtPoint(pos);
+        eraseAlongPath(lastErasePos, pos);
+        lastErasePos = { x: pos.x, y: pos.y };
         return;
       }
 
@@ -2466,9 +2554,39 @@
       const pos = getUnscaledCoords(e);
 
       if (currentPreviewItem.type === 'stroke') {
-        currentPreviewItem.points.push({ x: pos.x, y: pos.y });
+        const pts = currentPreviewItem.points;
+        if (pts.length > 0) {
+          const last = pts[pts.length - 1];
+          const dist = Math.hypot(pos.x - last.x, pos.y - last.y);
+          if (dist > 3) {
+            const steps = Math.ceil(dist / 3);
+            for (let s = 1; s < steps; s++) {
+              const t = s / steps;
+              pts.push({
+                x: last.x + (pos.x - last.x) * t,
+                y: last.y + (pos.y - last.y) * t
+              });
+            }
+          }
+        }
+        pts.push({ x: pos.x, y: pos.y });
       } else if (currentPreviewItem.type === 'shape') {
         if (currentPreviewItem.shapeType === 'freeform') {
+          const pts = currentPreviewItem.points;
+          if (pts && pts.length > 0) {
+            const last = pts[pts.length - 1];
+            const dist = Math.hypot(pos.x - last.x, pos.y - last.y);
+            if (dist > 3) {
+              const steps = Math.ceil(dist / 3);
+              for (let s = 1; s < steps; s++) {
+                const t = s / steps;
+                pts.push({
+                  x: last.x + (pos.x - last.x) * t,
+                  y: last.y + (pos.y - last.y) * t
+                });
+              }
+            }
+          }
           currentPreviewItem.points.push({ x: pos.x, y: pos.y });
         } else {
           currentPreviewItem.width = pos.x - currentPreviewItem.x;
@@ -2486,6 +2604,7 @@
       // 1. Erasing finish
       if (currentTool === 'erase' && isDrawing) {
         isDrawing = false;
+        lastErasePos = null;
         try { drawCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
         if (eraseOccurred) {
           pushHistory(getDiagramData().items);
