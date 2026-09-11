@@ -31,9 +31,57 @@ export class MarkdownPreviewPanel {
   private _markdownEngine: MarkdownEngine;
   private _updateTimeout: NodeJS.Timeout | undefined;
   private _syncLockTimeout: NodeJS.Timeout | undefined;
+  private _extraResourceRoots = new Set<string>();
+
+  private _updateLocalResourceRoots(): void {
+    this._panel.webview.options = {
+      enableScripts: true,
+      localResourceRoots: MarkdownPreviewPanel.getLocalResourceRoots(this._extensionUri, this._document, this._extraResourceRoots)
+    };
+  }
 
   public get documentUri(): vscode.Uri {
     return this._document.uri;
+  }
+
+  public static getLocalResourceRoots(extensionUri: vscode.Uri, document?: vscode.TextDocument, extraDirs: Iterable<string> = []): vscode.Uri[] {
+    const roots: vscode.Uri[] = [
+      vscode.Uri.joinPath(extensionUri, 'media'),
+      vscode.Uri.joinPath(extensionUri, 'dist')
+    ];
+
+    if (vscode.workspace.workspaceFolders) {
+      for (const folder of vscode.workspace.workspaceFolders) {
+        roots.push(folder.uri);
+      }
+    }
+
+    if (document && document.uri.scheme === 'file') {
+      const docFolder = path.dirname(document.fileName);
+      roots.push(vscode.Uri.file(docFolder));
+      const parentFolder = path.resolve(docFolder, '..');
+      roots.push(vscode.Uri.file(parentFolder));
+      const docWs = vscode.workspace.getWorkspaceFolder(document.uri);
+      if (docWs) {
+        roots.push(docWs.uri);
+      }
+    }
+
+    for (const extraDir of extraDirs) {
+      roots.push(vscode.Uri.file(extraDir));
+    }
+
+    const seen = new Set<string>();
+    const uniqueRoots: vscode.Uri[] = [];
+    for (const r of roots) {
+      const key = r.toString();
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueRoots.push(r);
+      }
+    }
+
+    return uniqueRoots;
   }
 
   public static createOrShow(extensionUri: vscode.Uri, document: vscode.TextDocument, viewColumn?: vscode.ViewColumn): MarkdownPreviewPanel {
@@ -53,10 +101,7 @@ export class MarkdownPreviewPanel {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [
-          vscode.Uri.joinPath(extensionUri, 'media'),
-          vscode.Uri.joinPath(extensionUri, 'dist')
-        ]
+        localResourceRoots: MarkdownPreviewPanel.getLocalResourceRoots(extensionUri, document)
       }
     );
 
@@ -172,15 +217,18 @@ export class MarkdownPreviewPanel {
     }
     this._document = doc;
     this._panel.title = `Preview ${getFileName(doc.fileName)}`;
+    this._updateLocalResourceRoots();
     this.refresh();
   }
 
   public refresh(): void {
+    this._updateLocalResourceRoots();
     const text = this._document.getText();
     const { html, headings } = this._markdownEngine.render(text);
+    const resolvedHtml = this._resolveImageUrls(html);
     const title = getFileName(this._document.fileName);
 
-    this._panel.webview.html = this._getHtmlForWebview(html, headings, title);
+    this._panel.webview.html = this._getHtmlForWebview(resolvedHtml, headings, title);
   }
 
   public updateContent(): void {
@@ -190,14 +238,153 @@ export class MarkdownPreviewPanel {
     this._updateTimeout = setTimeout(() => {
       const text = this._document.getText();
       const { html, headings } = this._markdownEngine.render(text);
+      const resolvedHtml = this._resolveImageUrls(html);
 
       this._panel.webview.postMessage({
         command: 'update',
-        html,
+        html: resolvedHtml,
         headings,
         title: getFileName(this._document.fileName)
       });
     }, 40);
+  }
+
+  private _resolveImageUrls(html: string): string {
+    if (!this._document || this._document.uri.scheme !== 'file') {
+      return html;
+    }
+
+    const docDir = path.dirname(this._document.fileName);
+    const wsFolder = vscode.workspace.getWorkspaceFolder(this._document.uri);
+    const wsDir = wsFolder ? wsFolder.uri.fsPath : undefined;
+    let addedExtraRoot = false;
+
+    const resolveSrc = (rawSrc: string): string => {
+      if (!rawSrc) return rawSrc;
+
+      if (
+        rawSrc.startsWith('http://') ||
+        rawSrc.startsWith('https://') ||
+        rawSrc.startsWith('data:') ||
+        rawSrc.startsWith('blob:') ||
+        rawSrc.startsWith('vscode-webview:') ||
+        rawSrc.startsWith('vscode-resource:') ||
+        rawSrc.startsWith('#') ||
+        rawSrc.startsWith('mailto:')
+      ) {
+        return rawSrc;
+      }
+
+      try {
+        let cleanSrc = rawSrc;
+        let query = '';
+        let fragment = '';
+
+        const hashIndex = cleanSrc.indexOf('#');
+        if (hashIndex !== -1) {
+          fragment = cleanSrc.slice(hashIndex + 1);
+          cleanSrc = cleanSrc.slice(0, hashIndex);
+        }
+
+        const queryIndex = cleanSrc.indexOf('?');
+        if (queryIndex !== -1) {
+          query = cleanSrc.slice(queryIndex + 1);
+          cleanSrc = cleanSrc.slice(0, queryIndex);
+        }
+
+        try {
+          cleanSrc = decodeURIComponent(cleanSrc);
+        } catch {}
+
+        let fileUri: vscode.Uri;
+        let resolvedPath: string;
+
+        if (cleanSrc.startsWith('file://')) {
+          fileUri = vscode.Uri.parse(cleanSrc);
+          resolvedPath = fileUri.fsPath;
+        } else if (path.isAbsolute(cleanSrc)) {
+          if (fs.existsSync(cleanSrc)) {
+            resolvedPath = cleanSrc;
+          } else if (wsDir) {
+            const relFromWs = path.join(wsDir, cleanSrc.replace(/^[\/\\]+/, ''));
+            if (fs.existsSync(relFromWs)) {
+              resolvedPath = relFromWs;
+            } else {
+              resolvedPath = cleanSrc;
+            }
+          } else {
+            resolvedPath = cleanSrc;
+          }
+          fileUri = vscode.Uri.file(resolvedPath);
+        } else {
+          // Relative path: check relative to document directory first
+          const absFromDoc = path.resolve(docDir, cleanSrc);
+          if (fs.existsSync(absFromDoc)) {
+            resolvedPath = absFromDoc;
+          } else if (wsDir) {
+            // Fallback: check relative to workspace directory
+            const absFromWs = path.resolve(wsDir, cleanSrc);
+            if (fs.existsSync(absFromWs)) {
+              resolvedPath = absFromWs;
+            } else {
+              resolvedPath = absFromDoc;
+            }
+          } else {
+            resolvedPath = absFromDoc;
+          }
+          fileUri = vscode.Uri.file(resolvedPath);
+        }
+
+        const dir = path.dirname(resolvedPath);
+        if (!this._extraResourceRoots.has(dir)) {
+          this._extraResourceRoots.add(dir);
+          addedExtraRoot = true;
+        }
+
+        if (query || fragment) {
+          fileUri = fileUri.with({ query: query || undefined, fragment: fragment || undefined });
+        }
+
+        return this._panel.webview.asWebviewUri(fileUri).toString();
+      } catch {
+        return rawSrc;
+      }
+    };
+
+    let resolved = html.replace(
+      /(<(?:img|video|audio|source)[^>]*?src=)(?:(["'])([^"']+)|([^\s>]+))/gi,
+      (match, prefix, quote, src1, src2) => {
+        const src = src1 || src2;
+        const q = quote || '"';
+        return `${prefix}${q}${resolveSrc(src)}${q}`;
+      }
+    );
+
+    resolved = resolved.replace(
+      /(<(?:source|img)[^>]*?srcset=)(?:(["'])([^"']+))/gi,
+      (match, prefix, quote, srcset) => {
+        const newSrcset = srcset
+          .split(',')
+          .map((item: string) => {
+            const trimmed = item.trim();
+            const spaceIdx = trimmed.indexOf(' ');
+            if (spaceIdx === -1) {
+              return resolveSrc(trimmed);
+            }
+            const url = trimmed.slice(0, spaceIdx);
+            const descriptor = trimmed.slice(spaceIdx);
+            return `${resolveSrc(url)}${descriptor}`;
+          })
+          .join(', ');
+        return `${prefix}${quote}${newSrcset}${quote}`;
+      }
+    );
+
+    if (addedExtraRoot) {
+      this._updateLocalResourceRoots();
+    }
+
+    return resolved;
   }
 
   public syncScroll(line: number, percentage: number): void {
