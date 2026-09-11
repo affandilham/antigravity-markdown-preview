@@ -1413,8 +1413,11 @@
 
   function applyModalTransform() {
     if (!modalCanvas) return;
-    // Pure GPU compositor transform (translate3d) - zero CPU repaint
+    // Pure GPU compositor transform (translate3d) - zero CPU repaint for diagram
     modalCanvas.style.transform = `translate3d(${modalTranslate.x}px, ${modalTranslate.y}px, 0) scale(${modalScale})`;
+
+    // Synchronize drawing annotations layer in real-time across unlimited viewport
+    redrawAnnotations();
 
     // Only touch DOM text if zoom percentage integer actually changed
     const currentPercent = Math.round(modalScale * 100);
@@ -1534,7 +1537,7 @@
     modalCanvas.style.height = `${currentDiagramHeight}px`;
     modalCanvas.appendChild(clone);
 
-    // Initialize & attach Annotation Canvas layer over the diagram
+    // Initialize & attach Annotation Canvas layer over the full viewport
     currentDiagramKey = element.id || (title.replace(/\s+/g, '_') + '_' + currentDiagramWidth + 'x' + currentDiagramHeight + '_' + (element.textContent ? element.textContent.trim().slice(0, 24) : ''));
     initDrawCanvas();
 
@@ -1571,6 +1574,13 @@
     modalOverlay.classList.remove('active');
     modalOverlay.setAttribute('aria-hidden', 'true');
 
+    if (drawCanvas && drawCtx) {
+      drawCtx.save();
+      drawCtx.setTransform(1, 0, 0, 1, 0, 0);
+      drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+      drawCtx.restore();
+    }
+
     if (modalCanvas) {
       modalCanvas.innerHTML = '';
       modalCanvas.style.transform = '';
@@ -1582,6 +1592,7 @@
 
   // ==========================================================================
   // Freehand Annotation Drawing Engine (High-Performance Smooth Bezier Curves)
+  // Unlimited Viewport Canvas with Virtual Diagram Coordinate Space
   // ==========================================================================
   function setDrawingTool(tool) {
     currentTool = tool;
@@ -1601,37 +1612,48 @@
     drawCanvas.style.pointerEvents = isDraw ? 'auto' : 'none';
   }
 
-  function initDrawCanvas() {
-    if (!modalCanvas) return;
-    drawCanvas = document.createElement('canvas');
-    drawCanvas.className = 'diagram-draw-canvas';
-    drawCanvas.id = 'diagramDrawCanvas';
-
+  function resizeDrawCanvas() {
+    if (!drawCanvas || !modalViewport) return;
     const dpr = Math.max(1, window.devicePixelRatio || 1);
-    drawCanvas.width = Math.round(currentDiagramWidth * dpr);
-    drawCanvas.height = Math.round(currentDiagramHeight * dpr);
-    drawCanvas.style.width = `${currentDiagramWidth}px`;
-    drawCanvas.style.height = `${currentDiagramHeight}px`;
+    const vw = modalViewport.clientWidth || window.innerWidth;
+    const vh = modalViewport.clientHeight || window.innerHeight;
 
+    drawCanvas.width = Math.round(vw * dpr);
+    drawCanvas.height = Math.round(vh * dpr);
+    drawCanvas.style.width = '100%';
+    drawCanvas.style.height = '100%';
     drawCtx = drawCanvas.getContext('2d');
-    drawCtx.scale(dpr, dpr);
-    modalCanvas.appendChild(drawCanvas);
+  }
 
+  function initDrawCanvas() {
+    if (!modalViewport) return;
+    drawCanvas = document.getElementById('diagramDrawCanvas');
+    if (!drawCanvas) {
+      drawCanvas = document.createElement('canvas');
+      drawCanvas.className = 'diagram-draw-canvas';
+      drawCanvas.id = 'diagramDrawCanvas';
+      modalViewport.appendChild(drawCanvas);
+    }
+
+    resizeDrawCanvas();
     setupDrawCanvasPointerEvents();
     redrawAnnotations();
     updateDrawingCursor();
   }
 
   function getUnscaledCoords(e) {
-    const rect = modalCanvas.getBoundingClientRect();
+    const rect = modalViewport.getBoundingClientRect();
+    const screenX = e.clientX - rect.left;
+    const screenY = e.clientY - rect.top;
     return {
-      x: (e.clientX - rect.left) / modalScale,
-      y: (e.clientY - rect.top) / modalScale
+      x: (screenX - modalTranslate.x) / modalScale,
+      y: (screenY - modalTranslate.y) / modalScale
     };
   }
 
   function setupDrawCanvasPointerEvents() {
-    if (!drawCanvas) return;
+    if (!drawCanvas || drawCanvas.dataset.eventsAttached) return;
+    drawCanvas.dataset.eventsAttached = 'true';
 
     drawCanvas.addEventListener('pointerdown', (e) => {
       if (currentTool === 'pan' || isSpacePressed || e.button !== 0) return;
@@ -1653,20 +1675,7 @@
         points: [pos]
       };
 
-      // Draw immediate sharp starting dot
-      drawCtx.save();
-      drawCtx.lineCap = 'round';
-      drawCtx.lineJoin = 'round';
-      if (currentTool === 'highlighter') {
-        drawCtx.globalAlpha = 0.35;
-      } else {
-        drawCtx.globalAlpha = 1.0;
-      }
-      drawCtx.fillStyle = currentColor;
-      drawCtx.beginPath();
-      drawCtx.arc(pos.x, pos.y, size / 2, 0, Math.PI * 2);
-      drawCtx.fill();
-      drawCtx.restore();
+      redrawAnnotations();
     });
 
     drawCanvas.addEventListener('pointermove', (e) => {
@@ -1684,33 +1693,7 @@
       if (dx * dx + dy * dy < 1.44) return;
 
       pts.push(pos);
-
-      // Render smooth Quadratic Midpoint Bezier curve segment
-      drawCtx.save();
-      drawCtx.lineCap = 'round';
-      drawCtx.lineJoin = 'round';
-      if (currentStroke.tool === 'highlighter') {
-        drawCtx.globalAlpha = 0.35;
-        drawCtx.lineWidth = currentStroke.size;
-      } else {
-        drawCtx.globalAlpha = 1.0;
-        drawCtx.lineWidth = currentStroke.size;
-      }
-      drawCtx.strokeStyle = currentStroke.color;
-
-      drawCtx.beginPath();
-      if (pts.length === 2) {
-        drawCtx.moveTo(pts[0].x, pts[0].y);
-        drawCtx.lineTo(pts[1].x, pts[1].y);
-      } else {
-        const pPrev = pts[pts.length - 3];
-        const pMidPrev = { x: (pPrev.x + pts[pts.length - 2].x) / 2, y: (pPrev.y + pts[pts.length - 2].y) / 2 };
-        const pMidCur = { x: (pts[pts.length - 2].x + pos.x) / 2, y: (pts[pts.length - 2].y + pos.y) / 2 };
-        drawCtx.moveTo(pMidPrev.x, pMidPrev.y);
-        drawCtx.quadraticCurveTo(pts[pts.length - 2].x, pts[pts.length - 2].y, pMidCur.x, pMidCur.y);
-      }
-      drawCtx.stroke();
-      drawCtx.restore();
+      redrawAnnotations();
     });
 
     const finishStroke = (e) => {
@@ -1728,7 +1711,7 @@
         }
         strokes.push(currentStroke);
         currentStroke = null;
-        redrawAnnotations(); // Clean anti-aliased composite pass
+        redrawAnnotations();
       }
     };
 
@@ -1737,13 +1720,29 @@
   }
 
   function redrawAnnotations() {
-    if (!drawCtx || !drawCanvas) return;
-    drawCtx.clearRect(0, 0, currentDiagramWidth, currentDiagramHeight);
+    if (!drawCtx || !drawCanvas || !modalViewport) return;
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+
+    drawCtx.save();
+    // 1. Reset context to raw pixel scale & clear entire screen viewport
+    drawCtx.setTransform(1, 0, 0, 1, 0, 0);
+    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+
+    // 2. Map context directly into virtual diagram space:
+    // Screen (X, Y) = (diagramX * modalScale + modalTranslate.x) * dpr
+    drawCtx.setTransform(
+      dpr * modalScale,
+      0,
+      0,
+      dpr * modalScale,
+      dpr * modalTranslate.x,
+      dpr * modalTranslate.y
+    );
 
     const strokes = diagramAnnotationsMap.get(currentDiagramKey) || [];
-    if (strokes.length === 0) return;
+    const allStrokes = currentStroke ? [...strokes, currentStroke] : strokes;
 
-    for (const stroke of strokes) {
+    for (const stroke of allStrokes) {
       const pts = stroke.points;
       if (!pts || pts.length === 0) continue;
 
@@ -1782,6 +1781,8 @@
       }
       drawCtx.restore();
     }
+
+    drawCtx.restore();
   }
 
   function undoAnnotation() {
@@ -1826,9 +1827,38 @@
     try {
       showModalToast('Rasterizing annotated diagram...');
       const scale = 2; // 2x crisp Retina output
+
+      // Calculate bounding box that covers both diagram AND any annotations drawn outside
+      let minX = 0;
+      let minY = 0;
+      let maxX = currentDiagramWidth;
+      let maxY = currentDiagramHeight;
+
+      const strokes = diagramAnnotationsMap.get(currentDiagramKey) || [];
+      for (const stroke of strokes) {
+        const pts = stroke.points;
+        if (!pts) continue;
+        for (const p of pts) {
+          minX = Math.min(minX, p.x - stroke.size);
+          minY = Math.min(minY, p.y - stroke.size);
+          maxX = Math.max(maxX, p.x + stroke.size);
+          maxY = Math.max(maxY, p.y + stroke.size);
+        }
+      }
+
+      // Add comfortable padding if annotations exceed diagram bounds
+      const padding = 32;
+      minX -= padding;
+      minY -= padding;
+      maxX += padding;
+      maxY += padding;
+
+      const exportWidth = Math.round(maxX - minX);
+      const exportHeight = Math.round(maxY - minY);
+
       const offCanvas = document.createElement('canvas');
-      offCanvas.width = Math.round(currentDiagramWidth * scale);
-      offCanvas.height = Math.round(currentDiagramHeight * scale);
+      offCanvas.width = Math.round(exportWidth * scale);
+      offCanvas.height = Math.round(exportHeight * scale);
       const offCtx = offCanvas.getContext('2d');
 
       // Theme background
@@ -1836,7 +1866,10 @@
       offCtx.fillStyle = isDark ? '#0d1117' : '#ffffff';
       offCtx.fillRect(0, 0, offCanvas.width, offCanvas.height);
 
-      // Draw diagram
+      // Render Diagram offset by -minX, -minY
+      const diagramOffsetX = -minX * scale;
+      const diagramOffsetY = -minY * scale;
+
       if (svgOrImg.tagName.toLowerCase() === 'svg') {
         const svgXml = new XMLSerializer().serializeToString(svgOrImg);
         const img = new Image();
@@ -1844,7 +1877,7 @@
         const blobUrl = URL.createObjectURL(svgBlob);
         await new Promise((resolve, reject) => {
           img.onload = () => {
-            offCtx.drawImage(img, 0, 0, offCanvas.width, offCanvas.height);
+            offCtx.drawImage(img, diagramOffsetX, diagramOffsetY, currentDiagramWidth * scale, currentDiagramHeight * scale);
             URL.revokeObjectURL(blobUrl);
             resolve();
           };
@@ -1855,11 +1888,14 @@
           img.src = blobUrl;
         });
       } else {
-        offCtx.drawImage(svgOrImg, 0, 0, offCanvas.width, offCanvas.height);
+        offCtx.drawImage(svgOrImg, diagramOffsetX, diagramOffsetY, currentDiagramWidth * scale, currentDiagramHeight * scale);
       }
 
-      // Draw vector annotations on top
-      const strokes = diagramAnnotationsMap.get(currentDiagramKey) || [];
+      // Render annotations offset by -minX, -minY
+      offCtx.save();
+      offCtx.translate(diagramOffsetX, diagramOffsetY);
+      offCtx.scale(scale, scale);
+
       for (const stroke of strokes) {
         const pts = stroke.points;
         if (!pts || pts.length === 0) continue;
@@ -1869,36 +1905,38 @@
         offCtx.lineJoin = 'round';
         if (stroke.tool === 'highlighter') {
           offCtx.globalAlpha = 0.35;
-          offCtx.lineWidth = stroke.size * scale;
+          offCtx.lineWidth = stroke.size;
         } else {
           offCtx.globalAlpha = 1.0;
-          offCtx.lineWidth = stroke.size * scale;
+          offCtx.lineWidth = stroke.size;
         }
         offCtx.strokeStyle = stroke.color;
         offCtx.fillStyle = stroke.color;
 
         if (pts.length === 1) {
           offCtx.beginPath();
-          offCtx.arc(pts[0].x * scale, pts[0].y * scale, (stroke.size * scale) / 2, 0, Math.PI * 2);
+          offCtx.arc(pts[0].x, pts[0].y, stroke.size / 2, 0, Math.PI * 2);
           offCtx.fill();
         } else if (pts.length === 2) {
           offCtx.beginPath();
-          offCtx.moveTo(pts[0].x * scale, pts[0].y * scale);
-          offCtx.lineTo(pts[1].x * scale, pts[1].y * scale);
+          offCtx.moveTo(pts[0].x, pts[0].y);
+          offCtx.lineTo(pts[1].x, pts[1].y);
           offCtx.stroke();
         } else {
           offCtx.beginPath();
-          offCtx.moveTo(pts[0].x * scale, pts[0].y * scale);
+          offCtx.moveTo(pts[0].x, pts[0].y);
           for (let i = 1; i < pts.length - 1; i++) {
-            const midX = ((pts[i].x + pts[i + 1].x) / 2) * scale;
-            const midY = ((pts[i].y + pts[i + 1].y) / 2) * scale;
-            offCtx.quadraticCurveTo(pts[i].x * scale, pts[i].y * scale, midX, midY);
+            const midX = (pts[i].x + pts[i + 1].x) / 2;
+            const midY = (pts[i].y + pts[i + 1].y) / 2;
+            offCtx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
           }
-          offCtx.lineTo(pts[pts.length - 1].x * scale, pts[pts.length - 1].y * scale);
+          offCtx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
           offCtx.stroke();
         }
         offCtx.restore();
       }
+
+      offCtx.restore();
 
       const dataUrl = offCanvas.toDataURL('image/png');
       vscode.postMessage({ command: 'copyPng', dataUrl });

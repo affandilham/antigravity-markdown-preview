@@ -1583,7 +1583,7 @@ body:not([data-vscode-theme-kind*="dark"]) .diagram-modal-viewport {
   transform-origin: 0 0;
   display: block;
   will-change: transform;
-  contain: layout paint;
+  contain: layout;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   pointer-events: none;

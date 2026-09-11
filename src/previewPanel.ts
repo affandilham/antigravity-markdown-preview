@@ -717,6 +717,7 @@ export class MarkdownPreviewPanel {
     </header>
     <div class="diagram-modal-viewport" id="diagramModalViewport">
       <div class="diagram-modal-canvas" id="diagramModalCanvas"></div>
+      <canvas class="diagram-draw-canvas" id="diagramDrawCanvas"></canvas>
     </div>
     <div class="diagram-modal-hint">
       <span>P / H: Draw / Highlight · V: Pan · Space + Drag: Pan · Cmd+Z: Undo · Esc: Close</span>
