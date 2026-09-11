@@ -28,7 +28,7 @@
 Click any diagram (or hover and press the **🔍 Fullscreen Lightbox** button) to open an expansive canvas with an elegant floating annotation dock.
 
 <p align="center">
-  <img src="media/preview/05-diagram-annotation-modal.png" width="90%" alt="Fullscreen Diagram Annotation Canvas with Pro Dock" />
+  <img src="media/preview/06-diagram-annotation-modal.png" width="90%" alt="Fullscreen Diagram Annotation Canvas with Pro Dock" />
 </p>
 
 - **Smooth Zoom & Pan**: Fluid navigation via Pinch-to-zoom, mouse wheel, double-click fit, or dedicated zoom control buttons.
@@ -56,7 +56,7 @@ Task lists are fully interactive directly inside the preview panel. Toggling a c
 Render complex software architecture, sequence workflows, state machines, and class structures with crystal-clear vector graphics.
 
 <p align="center">
-  <img src="media/preview/03-sequence-diagram-katex-math.png" width="100%" alt="Mermaid Sequence Diagram and KaTeX Math Formulas" />
+  <img src="media/preview/03-sequence-diagram-mermaid.png" width="100%" alt="Mermaid Sequence Diagram and Architecture" />
 </p>
 
 - **Mermaid 11.x Support**: Flowcharts, Sequence diagrams, Class diagrams, State diagrams, Entity Relationship diagrams (ERD), User Journey, Gantt charts, Git graphs, and Mindmaps.
@@ -69,6 +69,10 @@ Render complex software architecture, sequence workflows, state machines, and cl
 
 Render complex scientific formulas, calculus, physics equations, and linear algebra in real time.
 
+<p align="center">
+  <img src="media/preview/04-katex-math-formulas.png" width="100%" alt="KaTeX Mathematical Formulas and Scientific Typesetting" />
+</p>
+
 - **Inline Equations**: `$E = mc^2$`
 - **Display Block Equations**: `$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$`
 - **Currency Protection**: Intelligent currency escaping prevents legitimate prices (e.g. `$10 - $20`) from being erroneously parsed as math formulas.
@@ -80,7 +84,7 @@ Render complex scientific formulas, calculus, physics equations, and linear alge
 Organize multi-language implementations cleanly using clean tab headers.
 
 <p align="center">
-  <img src="media/preview/04-tabbed-code-shortcuts.png" width="100%" alt="Tabbed Code Blocks, 3D Keyboard Keys, and Collapsible Details" />
+  <img src="media/preview/05-tabbed-code-shortcuts.png" width="100%" alt="Tabbed Code Blocks, 3D Keyboard Keys, and Collapsible Details" />
 </p>
 
 - **Tabbed Fences**: Group snippets across TypeScript, Dart, Python, Go, Rust, and more.
