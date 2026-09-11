@@ -351,23 +351,24 @@ export class MarkdownPreviewPanel {
       }
     };
 
+
+
     let resolved = html.replace(
-      /(<(?:img|video|audio|source)[^>]*?src=)(?:(["'])([^"']+)|([^\s>]+))/gi,
-      (match, prefix, quote, src1, src2) => {
+      /<(img|video|audio|source)\b([^>]*?)\bsrc=(?:(["\'])([^"\']+)\3|([^\s>]+))/gi,
+      (match, tag, before, quote, src1, src2) => {
         const src = src1 || src2;
-        const q = quote || '"';
-        return `${prefix}${q}${resolveSrc(src)}${q}`;
+        return `<${tag}${before}src="${resolveSrc(src)}"`;
       }
     );
 
     resolved = resolved.replace(
-      /(<(?:source|img)[^>]*?srcset=)(?:(["'])([^"']+))/gi,
-      (match, prefix, quote, srcset) => {
+      /<(source|img)\b([^>]*?)\bsrcset=(?:(["\'])([^"\']+)\3)/gi,
+      (match, tag, before, quote, srcset) => {
         const newSrcset = srcset
-          .split(',')
+          .split(",")
           .map((item: string) => {
             const trimmed = item.trim();
-            const spaceIdx = trimmed.indexOf(' ');
+            const spaceIdx = trimmed.indexOf(" ");
             if (spaceIdx === -1) {
               return resolveSrc(trimmed);
             }
@@ -375,8 +376,8 @@ export class MarkdownPreviewPanel {
             const descriptor = trimmed.slice(spaceIdx);
             return `${resolveSrc(url)}${descriptor}`;
           })
-          .join(', ');
-        return `${prefix}${quote}${newSrcset}${quote}`;
+          .join(", ");
+        return `<${tag}${before}srcset="${newSrcset}"`;
       }
     );
 
