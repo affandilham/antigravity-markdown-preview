@@ -113,6 +113,7 @@ export class MarkdownPreviewPanel {
           case 'print':
             await this.printDocument(message.html);
             break;
+          case 'copyPng':
           case 'copyImageToClipboard':
             if (message.dataUrl) {
               await this.copyImageToClipboard(message.dataUrl);

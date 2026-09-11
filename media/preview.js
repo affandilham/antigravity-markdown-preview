@@ -2883,6 +2883,123 @@
   }
 
   // High-Resolution Retina PNG Export
+  // SVG Sanitization for Canvas Rasterization without Tainting
+  function prepareSvgForExport(originalSvg, width, height) {
+    const clone = originalSvg.cloneNode(true);
+
+    // 1. Convert all <foreignObject> elements to clean native SVG <text> elements
+    // This is CRITICAL: Chromium security marks any canvas as tainted if it draws
+    // an SVG containing <foreignObject>, causing canvas.toDataURL() to throw SecurityError.
+    const foreignObjects = Array.from(clone.querySelectorAll('foreignObject'));
+    const isDark = document.body.getAttribute('data-vscode-theme-kind') !== 'vscode-light';
+    const defaultTextColor = isDark ? '#e6edf3' : '#1f2328';
+
+    foreignObjects.forEach((fo, idx) => {
+      const x = parseFloat(fo.getAttribute('x') || '0');
+      const y = parseFloat(fo.getAttribute('y') || '0');
+      const w = parseFloat(fo.getAttribute('width') || '0');
+      const h = parseFloat(fo.getAttribute('height') || '0');
+
+      // Find corresponding original element to read accurate computed styles
+      const originalFos = originalSvg.querySelectorAll('foreignObject');
+      const origFo = (idx < originalFos.length) ? originalFos[idx] : null;
+      const sourceEl = (origFo && (origFo.querySelector('.nodeLabel') || origFo.querySelector('div') || origFo.querySelector('span'))) ||
+                       fo.querySelector('.nodeLabel') || fo.querySelector('div') || fo.querySelector('span') || fo;
+
+      let fontSize = '14px';
+      let fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      let fontWeight = '500';
+      let color = defaultTextColor;
+
+      if (sourceEl) {
+        try {
+          const st = window.getComputedStyle(sourceEl);
+          if (st.fontSize) fontSize = st.fontSize;
+          if (st.fontFamily) fontFamily = st.fontFamily;
+          if (st.fontWeight) fontWeight = st.fontWeight;
+          if (st.color && st.color !== 'rgba(0, 0, 0, 0)') color = st.color;
+        } catch (_) {}
+      }
+
+      const textContent = (fo.textContent || '').trim();
+      if (!textContent) {
+        fo.remove();
+        return;
+      }
+
+      const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      textEl.setAttribute('x', String(x + w / 2));
+      textEl.setAttribute('y', String(y + h / 2));
+      textEl.setAttribute('text-anchor', 'middle');
+      textEl.setAttribute('dominant-baseline', 'central');
+      textEl.setAttribute('alignment-baseline', 'middle');
+      textEl.setAttribute('fill', color);
+      textEl.setAttribute('font-size', fontSize);
+      textEl.setAttribute('font-family', fontFamily);
+      textEl.setAttribute('font-weight', fontWeight);
+
+      const lines = textContent.split(/\r?\n|<br\s*\/?>/gi).filter(s => s.trim().length > 0);
+      if (lines.length <= 1) {
+        textEl.textContent = textContent;
+      } else {
+        const parsedSize = parseFloat(fontSize) || 14;
+        const lineHeight = parsedSize * 1.25;
+        const startY = (y + h / 2) - ((lines.length - 1) * lineHeight) / 2;
+        lines.forEach((line, lineIdx) => {
+          const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+          tspan.setAttribute('x', String(x + w / 2));
+          tspan.setAttribute('y', String(startY + lineIdx * lineHeight));
+          tspan.setAttribute('dominant-baseline', 'central');
+          tspan.setAttribute('alignment-baseline', 'middle');
+          tspan.textContent = line.trim();
+          textEl.appendChild(tspan);
+        });
+      }
+
+      if (fo.parentNode) {
+        fo.parentNode.replaceChild(textEl, fo);
+      }
+    });
+
+    // 2. Ensure XML namespaces and dimensions
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+    clone.setAttribute('width', String(width));
+    clone.setAttribute('height', String(height));
+    if (!clone.getAttribute('viewBox')) {
+      clone.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    }
+
+    // 3. Remove any @import in styles that would trigger cross-origin network fetch
+    clone.querySelectorAll('style').forEach(s => {
+      s.textContent = s.textContent.replace(/@import\s+url\([^)]+\);?/gi, '');
+    });
+
+    // 4. Inject diagram CSS rules if missing in the SVG clone
+    if (!clone.querySelector('style')) {
+      const docStyles = document.querySelectorAll('style[id*="mermaid"]');
+      docStyles.forEach((s) => {
+        if (s.textContent) {
+          const cleanCss = s.textContent.replace(/@import\s+url\([^)]+\);?/gi, '');
+          const styleTag = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+          styleTag.textContent = cleanCss;
+          clone.insertBefore(styleTag, clone.firstChild);
+        }
+      });
+    }
+
+    // 5. Remove any external image elements that could taint canvas
+    clone.querySelectorAll('image').forEach(img => {
+      const href = img.getAttribute('href') || img.getAttribute('xlink:href') || '';
+      if (href.startsWith('http://') || href.startsWith('https://')) {
+        img.remove();
+      }
+    });
+
+    return clone;
+  }
+
+  // High-Resolution Retina PNG Export
   async function exportAnnotatedDiagramPng() {
     if (!modalCanvas) return;
     const svgOrImg = modalCanvas.querySelector('svg, img');
@@ -2927,9 +3044,10 @@
       const diagramOffsetX = -minX * scale;
       const diagramOffsetY = -minY * scale;
 
-      // Draw Diagram
+      // Draw Diagram without tainting canvas
       if (svgOrImg.tagName.toLowerCase() === 'svg') {
-        const svgXml = new XMLSerializer().serializeToString(svgOrImg);
+        const sanitizedSvg = prepareSvgForExport(svgOrImg, currentDiagramWidth, currentDiagramHeight);
+        const svgXml = new XMLSerializer().serializeToString(sanitizedSvg);
         const img = new Image();
         const svgBlob = new Blob([svgXml], { type: 'image/svg+xml;charset=utf-8' });
         const blobUrl = URL.createObjectURL(svgBlob);
@@ -2946,10 +3064,13 @@
           img.src = blobUrl;
         });
       } else {
-        offCtx.drawImage(svgOrImg, diagramOffsetX, diagramOffsetY, currentDiagramWidth * scale, currentDiagramHeight * scale);
+        // For <img> tags, if cross-origin, attempt draw or fallback
+        try {
+          offCtx.drawImage(svgOrImg, diagramOffsetX, diagramOffsetY, currentDiagramWidth * scale, currentDiagramHeight * scale);
+        } catch (_) {}
       }
 
-      // Draw Annotations
+      // Draw Annotations (Strokes, Shapes, Arrows, Text)
       offCtx.save();
       offCtx.translate(diagramOffsetX, diagramOffsetY);
       offCtx.scale(scale, scale);
@@ -3094,10 +3215,35 @@
 
       offCtx.restore();
 
+      // Export as PNG Data URL (Origin clean)
       const dataUrl = offCanvas.toDataURL('image/png');
-      vscode.postMessage({ command: 'copyPng', dataUrl });
 
-      // Visual feedback on button and toast
+      // Try browser clipboard API with Blob
+      let copiedViaNavigator = false;
+      if (offCanvas.toBlob && navigator.clipboard && window.ClipboardItem) {
+        try {
+          await new Promise((resolve, reject) => {
+            offCanvas.toBlob(async (blob) => {
+              if (!blob) return reject(new Error('No blob'));
+              try {
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                copiedViaNavigator = true;
+                resolve();
+              } catch (e) {
+                reject(e);
+              }
+            }, 'image/png');
+          });
+        } catch (_) {
+          copiedViaNavigator = false;
+        }
+      }
+
+      // Always notify extension host to write to system clipboard
+      vscode.postMessage({ command: 'copyPng', dataUrl });
+      vscode.postMessage({ command: 'copyImageToClipboard', dataUrl });
+
+      // Visual feedback
       if (btnCopyPngLabel && btnDrawExportPng) {
         btnCopyPngLabel.textContent = 'Copied!';
         btnDrawExportPng.classList.add('copied');
@@ -3112,9 +3258,7 @@
     }
   }
 
-  // ==========================================================================
-  // Diagram Lightbox Modal Interactions Setup
-  // ==========================================================================
+
   function setupDiagramModal() {
     if (!modalViewport || !modalOverlay) return;
 
