@@ -1704,6 +1704,12 @@ body:not([data-vscode-theme-kind*="dark"]) .draw-action-btn:hover {
   box-shadow: 0 1px 4px rgba(31, 111, 235, 0.35);
 }
 
+.draw-action-btn:disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
 .draw-action-btn.icon-only,
 .draw-tool-btn.icon-only {
   width: 26px;

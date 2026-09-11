@@ -1380,6 +1380,7 @@
   let currentStroke = null;
   let currentDiagramKey = '';
   const diagramAnnotationsMap = new Map(); // diagramKey -> Array of strokes
+  const diagramRedoMap = new Map(); // diagramKey -> Array of undone strokes (Redo stack)
   let drawCanvas = null;
   let drawCtx = null;
 
@@ -1400,6 +1401,7 @@
   const btnToolPen = document.getElementById('btnToolPen');
   const btnToolHighlighter = document.getElementById('btnToolHighlighter');
   const btnDrawUndo = document.getElementById('btnDrawUndo');
+  const btnDrawRedo = document.getElementById('btnDrawRedo');
   const btnDrawClear = document.getElementById('btnDrawClear');
   const btnDrawExportPng = document.getElementById('btnDrawExportPng');
 
@@ -1648,6 +1650,7 @@
     setupDrawCanvasPointerEvents();
     redrawAnnotations();
     updateDrawingCursor();
+    updateUndoRedoState();
   }
 
   function getUnscaledCoords(e) {
@@ -1728,7 +1731,10 @@
         }
         strokes.push(currentStroke);
         currentStroke = null;
+        // Any new stroke invalidates the redo history for this diagram
+        diagramRedoMap.set(currentDiagramKey, []);
         redrawAnnotations();
+        updateUndoRedoState();
       }
     };
 
@@ -1804,21 +1810,53 @@
     drawCtx.restore();
   }
 
+  function updateUndoRedoState() {
+    const strokes = diagramAnnotationsMap.get(currentDiagramKey) || [];
+    const redoStrokes = diagramRedoMap.get(currentDiagramKey) || [];
+    if (btnDrawUndo) btnDrawUndo.disabled = strokes.length === 0;
+    if (btnDrawRedo) btnDrawRedo.disabled = redoStrokes.length === 0;
+  }
+
   function undoAnnotation() {
     const strokes = diagramAnnotationsMap.get(currentDiagramKey);
     if (strokes && strokes.length > 0) {
-      strokes.pop();
+      const popped = strokes.pop();
+      let redoStrokes = diagramRedoMap.get(currentDiagramKey);
+      if (!redoStrokes) {
+        redoStrokes = [];
+        diagramRedoMap.set(currentDiagramKey, redoStrokes);
+      }
+      redoStrokes.push(popped);
       redrawAnnotations();
-      showModalToast('Undid stroke');
+      updateUndoRedoState();
+      showModalToast('Undid stroke (Cmd+Z)');
+    }
+  }
+
+  function redoAnnotation() {
+    const redoStrokes = diagramRedoMap.get(currentDiagramKey);
+    if (redoStrokes && redoStrokes.length > 0) {
+      const restored = redoStrokes.pop();
+      let strokes = diagramAnnotationsMap.get(currentDiagramKey);
+      if (!strokes) {
+        strokes = [];
+        diagramAnnotationsMap.set(currentDiagramKey, strokes);
+      }
+      strokes.push(restored);
+      redrawAnnotations();
+      updateUndoRedoState();
+      showModalToast('Redid stroke (Cmd+Shift+Z)');
     }
   }
 
   function clearAnnotations() {
     const strokes = diagramAnnotationsMap.get(currentDiagramKey);
     if (strokes && strokes.length > 0) {
+      diagramRedoMap.set(currentDiagramKey, [...strokes]);
       strokes.length = 0;
       redrawAnnotations();
-      showModalToast('Cleared drawings');
+      updateUndoRedoState();
+      showModalToast('Cleared drawings (Undo available)');
     }
   }
 
@@ -2047,6 +2085,13 @@
       });
     }
 
+    if (btnDrawRedo) {
+      btnDrawRedo.addEventListener('click', (e) => {
+        e.stopPropagation();
+        redoAnnotation();
+      });
+    }
+
     if (btnDrawClear) {
       btnDrawClear.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -2196,6 +2241,17 @@
       if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
         e.preventDefault();
         undoAnnotation();
+        return;
+      }
+
+      // Cmd+Shift+Z or Ctrl+Shift+Z or Ctrl+Y / Cmd+Y for Redo Annotation
+      const isRedoShortcut =
+        ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z') && e.shiftKey) ||
+        ((e.metaKey || e.ctrlKey) && (e.key === 'y' || e.key === 'Y'));
+
+      if (isRedoShortcut) {
+        e.preventDefault();
+        redoAnnotation();
         return;
       }
 
