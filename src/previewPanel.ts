@@ -1036,6 +1036,11 @@ export class MarkdownPreviewPanel {
             <button class="color-dot" data-color="#229b47" style="background:#229b47;" title="Green" type="button" aria-label="Green"></button>
             <button class="color-dot active" data-color="#fb980c" style="background:#fb980c;" title="Orange" type="button" aria-label="Orange"></button>
             <button class="color-dot" data-color="#8437ef" style="background:#8437ef;" title="Purple" type="button" aria-label="Purple"></button>
+            <button class="color-chevron-btn" id="btnMoreColorChevron" title="Full Color Palette & Custom Picker" type="button" aria-label="More colors">
+              <svg width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1.5 1.5L6 6L10.5 1.5"/>
+              </svg>
+            </button>
           </div>
         </div>
 

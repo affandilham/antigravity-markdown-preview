@@ -1470,6 +1470,7 @@
   const moreBadgeText = document.getElementById('moreBadgeText');
   const moreSepToolsColor = document.getElementById('moreSepToolsColor');
   const moreGroupColor = document.getElementById('moreGroupColor');
+  const btnMoreColorChevron = document.getElementById('btnMoreColorChevron');
   const moreItemColor = document.getElementById('moreItemColor');
   const moreColorPreview = document.getElementById('moreColorPreview');
   const moreSepColorActions = document.getElementById('moreSepColorActions');
@@ -2369,7 +2370,7 @@
     popoverEl.style.display = 'block';
     activePopoverId = popoverEl.id;
     activePopoverAnchorEl = anchorEl;
-    if (popoverEl.id === 'popoverMore' && btnDockMore) {
+    if ((popoverEl.id === 'popoverMore' || anchorEl === btnDockMore) && btnDockMore) {
       btnDockMore.classList.add('active');
     }
     positionActivePopover();
@@ -4039,6 +4040,14 @@
         }
       });
     });
+
+    if (btnMoreColorChevron) {
+      btnMoreColorChevron.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllPopovers();
+        togglePopover(popoverCustomColor, btnDockMore);
+      });
+    }
 
     if (moreItemUndo) {
       moreItemUndo.addEventListener('click', (e) => {

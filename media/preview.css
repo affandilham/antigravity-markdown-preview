@@ -2539,12 +2539,12 @@ body[data-vscode-theme-kind*="dark"] .popover-more .popover-divider {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 6px 10px;
 }
 
 .more-colors-row .color-dot {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   border: none;
   cursor: pointer;
@@ -2565,6 +2565,37 @@ body[data-vscode-theme-kind*="dark"] .popover-more .popover-divider {
 
 body[data-vscode-theme-kind*="dark"] .more-colors-row .color-dot.active {
   box-shadow: 0 0 0 2.5px #1e2228, 0 0 0 4px #3b82f6;
+}
+
+.more-colors-row .color-chevron-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 24px;
+  border-radius: 6px;
+  color: #1e293b;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.more-colors-row .color-chevron-btn:hover {
+  color: #0f172a;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+body[data-vscode-theme-kind*="dark"] .more-colors-row .color-chevron-btn {
+  color: #cbd5e1;
+}
+
+body[data-vscode-theme-kind*="dark"] .more-colors-row .color-chevron-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .more-group {
